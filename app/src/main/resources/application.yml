@@ -1,0 +1,46 @@
+quorum:
+  auth:
+    jwt:
+      secret: ${JWT_SECRET}
+      access-ttl: 1h
+      refresh-ttl: 30d
+    init-data-max-age: 300s
+  telegram:
+    bot-token: ${TG_BOT_TOKEN}
+    miniapp-name: ${TG_APP_NAME}
+    send-rate-per-sec: 20
+  tmdb:
+    api-token: ${TMDB_TOKEN}
+    base-url: https://api.themoviedb.org/3
+    rate-per-sec: 25
+    resync-after: 30d
+  matching:
+    version: "w1"
+    weights:
+      overlap: 45
+      genre-fit: 20
+      rating: 15
+      recency: 10
+      availability: 10
+    penalties:
+      seen-share: 25
+      long-runtime: 15
+      foreign-low-rated: 10
+    runtime-penalty-threshold-min: 150
+    veto-dislike-share: 0.60
+  limits:
+    watchlist-max: 1000
+    seen-max: 5000
+    active-hosted-sessions: 5
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/quorum
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration

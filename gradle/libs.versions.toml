@@ -1,0 +1,37 @@
+[versions]
+spring-boot = "3.5.4"
+spring-dm = "1.1.7"
+jakarta-persistence = "3.1.0"
+uuid-creator = "6.1.1"
+jjwt = "0.12.6"
+resilience4j = "2.3.0"
+springdoc = "2.8.6"
+archunit = "1.4.0"
+testcontainers = "1.21.0"
+junit-platform = "1.12.2"
+wiremock = "3.13.0"
+lombok = "1.18.36"
+spotless = "7.0.2"
+
+[libraries]
+# --- плагины как библиотеки: нужны build-logic для convention-плагинов ---
+plugin-spring-boot = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
+plugin-spring-dm = { module = "io.spring.gradle:dependency-management-plugin", version.ref = "spring-dm" }
+plugin-spotless = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+
+# --- рантайм ---
+jakarta-persistence-api = { module = "jakarta.persistence:jakarta.persistence-api", version.ref = "jakarta-persistence" }
+uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuid-creator" }
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+resilience4j-spring = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+springdoc-webmvc = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+
+# --- тесты ---
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
+archunit = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }

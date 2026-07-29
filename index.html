@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script></head>
+<body style="font-family:monospace;word-break:break-all;padding:16px">
+<h3>initData:</h3>
+<div id ="d"></div>
+<script>
+    const d= window.Telegram.WebApp.initData;
+    document.getElementById('d').textContent = d || '(пусто - открой из Telegram)';
+</script>
+</body></html>

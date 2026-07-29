@@ -1,0 +1,1 @@
+// Root project — all per-module configuration lives in convention plugins under build-logic/

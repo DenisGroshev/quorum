@@ -1,0 +1,8 @@
+.git
+.idea
+.gradle
+build
+**/build
+.claude
+*.md
+*.pdf
