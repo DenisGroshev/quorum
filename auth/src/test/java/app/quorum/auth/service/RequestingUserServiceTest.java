@@ -103,6 +103,65 @@ class RequestingUserServiceTest {
         assertThrows(InvalidDataInitException.class, () -> service.authenticate(tampered));
     }
 
+    @Test
+    void authenticate_hashWithOneCharacterFlipped_throws() {
+        String initData = sign(
+                Map.of("auth_date", String.valueOf(NOW.getEpochSecond()), "user", "{\"id\":1,\"first_name\":\"A\"}"),
+                BOT_TOKEN);
+        char lastHexDigit = initData.charAt(initData.length() - 1);
+        char flipped = lastHexDigit == '0' ? '1' : '0';
+        String tampered = initData.substring(0, initData.length() - 1) + flipped;
+
+        assertThrows(InvalidDataInitException.class, () -> service.authenticate(tampered));
+    }
+
+    @Test
+    void authenticate_fieldChangedAfterSigning_throws() {
+        String originalUser = "{\"id\":1,\"first_name\":\"A\"}";
+        String tamperedUser = "{\"id\":1,\"first_name\":\"Mallory\"}";
+        String initData =
+                sign(Map.of("auth_date", String.valueOf(NOW.getEpochSecond()), "user", originalUser), BOT_TOKEN);
+
+        String originalUserParam = "user=" + URLEncoder.encode(originalUser, StandardCharsets.UTF_8);
+        String tamperedUserParam = "user=" + URLEncoder.encode(tamperedUser, StandardCharsets.UTF_8);
+        String tampered = initData.replace(originalUserParam, tamperedUserParam);
+
+        assertThrows(InvalidDataInitException.class, () -> service.authenticate(tampered));
+    }
+
+    @Test
+    void authenticate_missingUserField_throws() {
+        String initData = sign(Map.of("auth_date", String.valueOf(NOW.getEpochSecond())), BOT_TOKEN);
+
+        assertThrows(InvalidDataInitException.class, () -> service.authenticate(initData));
+    }
+
+    @Test
+    void authenticate_blankInitData_throws() {
+        assertThrows(InvalidDataInitException.class, () -> service.authenticate(""));
+    }
+
+    @Test
+    void authenticate_garbageInitData_throwsWithoutLeakingOtherExceptionTypes() {
+        assertThrows(InvalidDataInitException.class, () -> service.authenticate("this is not a query string"));
+    }
+
+    @Test
+    void authenticate_validInitDataWithoutOptionalFields_returnsUserWithNullOptionalFields() {
+        String initData = sign(
+                Map.of("auth_date", String.valueOf(NOW.getEpochSecond()), "user", "{\"id\":1,\"first_name\":\"A\"}"),
+                BOT_TOKEN);
+
+        TelegramUser user = service.authenticate(initData);
+
+        assertThat(user.id()).isEqualTo(1L);
+        assertThat(user.firstName()).isEqualTo("A");
+        assertThat(user.lastName()).isNull();
+        assertThat(user.userName()).isNull();
+        assertThat(user.photoUrl()).isNull();
+        assertThat(user.languageCode()).isNull();
+    }
+
     private static String sign(Map<String, String> fields, String botToken) {
         Map<String, String> ordered = new LinkedHashMap<>(fields);
 

@@ -86,6 +86,15 @@ public class User {
         favGenreIds.addAll(genreIds);
     }
 
+    public void updateSettings(Boolean notifyEnabled, ContentLang langContent) {
+        if (notifyEnabled != null) {
+            this.notifyEnabled = notifyEnabled;
+        }
+        if (langContent != null) {
+            this.langContent = langContent;
+        }
+    }
+
     public void anonymize(Clock clock) {
         this.tgUserId = null;
         this.username = null;

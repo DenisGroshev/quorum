@@ -1,6 +1,10 @@
 package app.quorum.auth.service;
 
 import app.quorum.auth.api.AccessToken;
+import app.quorum.auth.api.AccessTokenClaims;
+import app.quorum.common.exception.InvalidAccessTokenException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class JwtService {
 
     private final Clock clock;
+    private final io.jsonwebtoken.Clock jwtClock;
     private final SecretKey signingKey;
     private final Duration accessTtl;
 
@@ -25,6 +30,7 @@ public class JwtService {
             @Value("${quorum.auth.jwt.secret}") String secret,
             @Value("${quorum.auth.jwt.access-ttl}") Duration accessTtl) {
         this.clock = clock;
+        this.jwtClock = () -> Date.from(clock.instant());
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTtl = accessTtl;
     }
@@ -42,5 +48,22 @@ public class JwtService {
                 .compact();
 
         return new AccessToken(token, accessTtl.toSeconds());
+    }
+
+    public AccessTokenClaims parseAccessToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .clock(jwtClock)
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            UUID userId = UUID.fromString(claims.getSubject());
+            int tokenVer = claims.get("tokenVer", Integer.class);
+            return new AccessTokenClaims(userId, tokenVer);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new InvalidAccessTokenException("Access token is invalid", e);
+        }
     }
 }

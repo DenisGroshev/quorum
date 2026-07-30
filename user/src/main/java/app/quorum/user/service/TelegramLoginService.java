@@ -8,45 +8,32 @@ import app.quorum.auth.service.RefreshTokenService;
 import app.quorum.auth.service.RequestingUserService;
 import app.quorum.user.api.TelegramLoginResult;
 import app.quorum.user.domain.User;
-import app.quorum.user.repository.UserRepository;
-import java.time.Clock;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TelegramLoginService {
 
     private final RequestingUserService requestingUserService;
-    private final UserRepository userRepository;
+    private final UserRegistrationService userRegistrationService;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
-    private final Clock clock;
 
     public TelegramLoginService(
             RequestingUserService requestingUserService,
-            UserRepository userRepository,
+            UserRegistrationService userRegistrationService,
             JwtService jwtService,
-            RefreshTokenService refreshTokenService,
-            Clock clock) {
+            RefreshTokenService refreshTokenService) {
         this.requestingUserService = requestingUserService;
-        this.userRepository = userRepository;
+        this.userRegistrationService = userRegistrationService;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
-        this.clock = clock;
     }
 
-    @Transactional
     public TelegramLoginResult login(String rawInitData) {
         TelegramUser telegramUser = requestingUserService.authenticate(rawInitData);
         TelegramProfile profile = toProfile(telegramUser);
 
-        User user = userRepository.findByTgUserId(profile.tgUserId()).orElse(null);
-        if (user == null) {
-            user = User.registerFromTelegram(profile, clock);
-        } else {
-            user.syncFromTelegram(profile);
-        }
-        user = userRepository.save(user);
+        User user = userRegistrationService.registerOrSync(profile);
 
         AccessToken accessToken = jwtService.issueAccessToken(user.getId(), user.getTokenVer());
         String refreshToken = refreshTokenService.issue(user.getId());

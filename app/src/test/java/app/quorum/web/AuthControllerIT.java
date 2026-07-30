@@ -10,8 +10,15 @@ import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
@@ -103,6 +110,37 @@ class AuthControllerIT {
         ResponseEntity<Map<String, Object>> response = postLogin("Bearer something");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void telegram_concurrentFirstLoginsOfSameTgUser_convergeToOneAccountWithNo500s() throws Exception {
+        long tgUserId = 999_001L;
+        int concurrency = 8;
+        ExecutorService executor = Executors.newFixedThreadPool(concurrency);
+        CountDownLatch ready = new CountDownLatch(concurrency);
+        CountDownLatch start = new CountDownLatch(1);
+
+        try {
+            List<Future<ResponseEntity<Map<String, Object>>>> futures = IntStream.range(0, concurrency)
+                    .<Future<ResponseEntity<Map<String, Object>>>>mapToObj(i -> executor.submit(() -> {
+                        ready.countDown();
+                        start.await();
+                        return callTelegramLogin(telegramUserJson(tgUserId, "Racer", "Racer", "racer"), Instant.now());
+                    }))
+                    .collect(Collectors.toList());
+
+            ready.await();
+            start.countDown();
+
+            for (Future<ResponseEntity<Map<String, Object>>> future : futures) {
+                ResponseEntity<Map<String, Object>> response = future.get(10, TimeUnit.SECONDS);
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            }
+        } finally {
+            executor.shutdown();
+        }
+
+        assertThat(userRepository.findByTgUserId(tgUserId)).isPresent();
     }
 
     private ResponseEntity<Map<String, Object>> callTelegramLogin(String userJson, Instant authDate) {
