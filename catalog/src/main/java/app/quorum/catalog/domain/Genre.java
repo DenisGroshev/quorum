@@ -8,11 +8,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// Имя JPA-сущности намеренно не дефолтное ("Genre"): в модуле user уже есть
-// app.quorum.user.domain.Genre, отображённая на ту же таблицу genres. Hibernate
-// ключует сущности по entity name (по умолчанию — простое имя класса), а не по
-// FQCN — при совпадении оба класса не проходят регистрацию в общем
-// персистентном контексте :app (DuplicateMappingException).
 @Entity(name = "CatalogGenre")
 @Table(name = "genres")
 @Getter

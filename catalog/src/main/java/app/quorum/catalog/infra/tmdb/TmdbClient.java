@@ -47,11 +47,6 @@ public class TmdbClient {
         this.rateLimiter = rateLimiterRegistry.rateLimiter(INSTANCE_NAME);
     }
 
-    /**
-     * Для тестов, которым устойчивость не важна (кэш, маппинг, таймауты и
-     * т.п.): без повторов (maxAttempts=1) и с практически недостижимым лимитом
-     * скорости — поведение как если бы Resilience4j не было вовсе.
-     */
     public TmdbClient(RestClient restClient) {
         this(
                 restClient,
@@ -117,13 +112,7 @@ public class TmdbClient {
     }
 
     /**
-     * Размыкатель цепи снаружи → повторы → ограничитель скорости → сам
-     * HTTP-вызов внутри. Собрано явно через статические decorateSupplier, а не
-     * аннотациями {@code @CircuitBreaker}/{@code @Retry}/{@code @RateLimiter} —
-     * у аннотационных AOP-аспектов Resilience4j порядок по умолчанию обратный
-     * (повторы снаружи размыкателя) и правится через легко забываемые свойства
-     * {@code *AspectOrder}. Явная композиция в коде делает порядок
-     * невозможным перепутать.
+     * Размыкатель цепи снаружи -> повторы -> ограничитель скорости -> сам
      */
     private <T> T execute(Supplier<T> call) {
         Supplier<T> withRateLimiter = RateLimiter.decorateSupplier(rateLimiter, call);
@@ -133,7 +122,6 @@ public class TmdbClient {
     }
 
     // TMDB требует полный языковой тег (ru-RU/en-US), а не голый код языка
-    // (ru/en) — с голым кодом TMDB отдаёт данные, но переводы менее полные.
     private String languageCode(ContentLang lang) {
         return switch (lang) {
             case RU -> "ru-RU";

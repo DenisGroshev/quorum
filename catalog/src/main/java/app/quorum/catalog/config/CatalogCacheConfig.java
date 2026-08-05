@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 // контексте перестаёт быть присвояем конкретному классу CatalogService (только
 // CatalogFacade). Spring Boot сам выставляет proxyTargetClass=true при
 // автоконфигурации, но здесь это явно, чтобы не зависеть от окружения.
+// TODO делала ии надо перепроверить
 @Configuration(proxyBeanMethods = false)
 @EnableCaching(proxyTargetClass = true)
 public class CatalogCacheConfig {

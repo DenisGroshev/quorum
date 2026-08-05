@@ -13,15 +13,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Фоновая пересинхронизация (шаг 12, SHOULD). Раз в сутки берёт пачку самых
- * старых устаревших фильмов и обновляет их через {@link CatalogService#getOrFetch}
- * — тот же путь, что и обычный запрос карточки, так что TMDB-down уже
- * обрабатывается там (шаг 8: отдаём то, что есть, не падаем).
- *
- * <p>Пачками, а не всё разом — иначе большая база упрётся в лимит запросов
- * TMDB за один прогон. Не в момент старта — даём приложению подняться.
- */
 @Component
 public class MovieResyncScheduler {
 

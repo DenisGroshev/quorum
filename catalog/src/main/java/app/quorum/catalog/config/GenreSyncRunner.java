@@ -15,12 +15,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
-/**
- * Наполняет справочник жанров при старте (шаг 11). Пытается сходить в TMDB на
- * обоих языках; если TMDB недоступен — предупреждение в лог и продолжаем
- * запуск со старым справочником (пустым или ранее заполненным), а не падаем.
- * Иначе временный сбой TMDB в момент деплоя не давал бы приложению подняться.
- */
+
 @Component
 public class GenreSyncRunner implements ApplicationRunner {
 

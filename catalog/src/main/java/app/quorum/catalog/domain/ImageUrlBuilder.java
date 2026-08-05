@@ -7,16 +7,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import java.time.Duration;
 import org.springframework.stereotype.Component;
 
-/**
- * Строит полный адрес постера: базовый адрес + размер (из конфигурации TMDB,
- * шаг 1) + путь фильма.
- *
- * <p>Конфигурация TMDB кэшируется вручную (не через {@code @Cacheable}):
- * единственный вызывающий метод здесь — {@code posterUrl}, и вызов "через
- * this" в пределах одного бина не проходит через Spring AOP-прокси — аннотация
- * на приватном/самовызываемом методе была бы тихо проигнорирована. Ключ не
- * нужен (значение одно), поэтому это просто in-memory кэш на один слот.
- */
 @Component
 public class ImageUrlBuilder {
 
