@@ -1,6 +1,9 @@
 package app.quorum.web;
 
 import app.quorum.common.exception.InvalidAccessTokenException;
+import app.quorum.common.web.RequestAttributes;
+import app.quorum.user.domain.User;
+import app.quorum.user.repository.UserRepository;
 import app.quorum.user.service.AccessTokenAuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,9 +17,12 @@ public class BearerAuthInterceptor implements HandlerInterceptor {
     private static final String SCHEME_PREFIX = "Bearer ";
 
     private final AccessTokenAuthenticationService authenticationService;
+    private final UserRepository userRepository;
 
-    public BearerAuthInterceptor(AccessTokenAuthenticationService authenticationService) {
+    public BearerAuthInterceptor(
+            AccessTokenAuthenticationService authenticationService, UserRepository userRepository) {
         this.authenticationService = authenticationService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -29,6 +35,11 @@ public class BearerAuthInterceptor implements HandlerInterceptor {
         String token = header.substring(SCHEME_PREFIX.length());
         UUID userId = authenticationService.authenticate(token);
         request.setAttribute(USER_ID_ATTRIBUTE, userId);
+
+        User user = userRepository
+                .findById(userId)
+                .orElseThrow(() -> new InvalidAccessTokenException("User no longer exists"));
+        request.setAttribute(RequestAttributes.CONTENT_LANG_ATTRIBUTE, user.getLangContent());
         return true;
     }
 }
