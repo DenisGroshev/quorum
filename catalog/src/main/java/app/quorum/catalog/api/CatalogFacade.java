@@ -9,7 +9,7 @@ import java.util.Set;
 public interface CatalogFacade {
     MovieDto getOrFetch(long tmdbId, ContentLang lang);
 
-    List<MovieDto> popularByGenres(Set<Integer> genreIds, int limit);
+    List<MovieDto> popularByGenres(Set<Integer> genreIds, int limit, ContentLang lang);
 
     Map<Long, MovieDto> getCached(Collection<Long> tmdbIds, ContentLang lang);
 }

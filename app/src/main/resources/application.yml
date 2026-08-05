@@ -10,10 +10,16 @@ quorum:
     miniapp-name: ${TG_APP_NAME}
     send-rate-per-sec: 20
   tmdb:
+    base-url: ${TMDB_BASE_URL:https://api.themoviedb.org/3}
     api-token: ${TMDB_TOKEN}
-    base-url: https://api.themoviedb.org/3
+    connect-timeout: 3s
+    read-timeout: 5s
     rate-per-sec: 25
     resync-after: 30d
+    search-cache-ttl: 15m
+    search-cache-size: 10000
+    poster-size-list: w185
+    poster-size-details: w500
   matching:
     version: "w1"
     weights:
@@ -32,6 +38,38 @@ quorum:
     watchlist-max: 1000
     seen-max: 5000
     active-hosted-sessions: 5
+
+# resilience4j.* — на корне, не под quorum:. Автоконфигурация Spring Boot
+# биндит CircuitBreakerRegistry/RetryRegistry/RateLimiterRegistry именно из
+# этого префикса; TmdbClient сам собирает порядок размыкатель→повторы→
+# ограничитель в коде (см. комментарий там), поэтому здесь нет свойств
+# aspect-order — они относятся только к annotation+AOP подходу, который не
+# используется.
+resilience4j:
+  ratelimiter:
+    instances:
+      tmdb:
+        limit-for-period: 25
+        limit-refresh-period: 1s
+        timeout-duration: 2s
+  retry:
+    instances:
+      tmdb:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.HttpClientErrorException$TooManyRequests
+  circuitbreaker:
+    instances:
+      tmdb:
+        failure-rate-threshold: 50
+        sliding-window-size: 30
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
 
 spring:
   datasource:

@@ -11,6 +11,8 @@ testcontainers = "1.21.0"
 junit-platform = "1.12.2"
 wiremock = "3.13.0"
 lombok = "1.18.36"
+lombok-mapstruct-binding = "0.2.0"
+mapstruct = "1.6.3"
 spotless = "7.0.2"
 
 [libraries]
@@ -28,6 +30,9 @@ jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
 resilience4j-spring = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
 springdoc-webmvc = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombok-mapstruct-binding" }
+mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
+mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
 
 # --- тесты ---
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
