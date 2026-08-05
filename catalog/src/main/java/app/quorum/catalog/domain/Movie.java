@@ -3,7 +3,6 @@ package app.quorum.catalog.domain;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Embeddable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
@@ -12,17 +11,16 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "movies")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
+@NoArgsConstructor
 public class Movie {
 
     @Id
@@ -79,30 +77,5 @@ public class Movie {
     @Override
     public int hashCode() {
         return Movie.class.hashCode();
-    }
-}
-
-@Embeddable
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-class MovieGenreRef {
-
-    @Column(name = "genre_id", nullable = false)
-    private int genreId;
-
-    @Column(name = "is_primary", nullable = false)
-    private boolean primary;
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        MovieGenreRef that = (MovieGenreRef) o;
-        return genreId == that.genreId && primary == that.primary;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(genreId, primary);
     }
 }

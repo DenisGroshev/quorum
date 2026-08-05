@@ -27,6 +27,10 @@ dependencies {
     testImplementation(libs.archunit)
     testImplementation(libs.testcontainers.postgres)
     testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.wiremock)
+    // Только чтобы тест мог обратиться к CircuitBreakerRegistry/RetryRegistry/
+    // RateLimiterRegistry напрямую и проверить, что YAML реально в них попал.
+    testImplementation(libs.resilience4j.spring)
 }
 
 tasks.bootBuildImage {

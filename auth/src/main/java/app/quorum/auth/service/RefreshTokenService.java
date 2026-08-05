@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,32 @@ public class RefreshTokenService {
         RefreshToken entity = RefreshToken.issue(userId, sha256Hex(rawToken), (int) refreshTtl.toDays(), clock);
         repository.save(entity);
         return rawToken;
+    }
+
+    public RefreshToken findByRawToken(String rawToken) {
+        return repository.findByTokenHash(sha256Hex(rawToken)).orElse(null);
+    }
+
+    public String rotate(RefreshToken oldToken) {
+        String newRawToken = generateRawToken();
+        RefreshToken newToken =
+                RefreshToken.issue(oldToken.getUserId(), sha256Hex(newRawToken), (int) refreshTtl.toDays(), clock);
+        repository.save(newToken);
+
+        oldToken.revoke(newToken.getId());
+        repository.save(oldToken);
+
+        return newRawToken;
+    }
+
+    public void revokeAllForUser(UUID userId) {
+        List<RefreshToken> tokens = repository.findByUserId(userId);
+        for (RefreshToken token : tokens) {
+            if (!token.isRevoked()) {
+                token.revoke(null);
+            }
+        }
+        repository.saveAll(tokens);
     }
 
     private String generateRawToken() {
