@@ -21,6 +21,11 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // /api/v1/meta/** (атрибуция TMDB) намеренно не в списке — доступен без токена.
         registry.addInterceptor(new BearerAuthInterceptor(authenticationService, userRepository))
-                .addPathPatterns("/api/v1/users/**", "/api/v1/movies/**", "/api/v1/genres/**");
+                .addPathPatterns(
+                        "/api/v1/users/**",
+                        "/api/v1/movies/**",
+                        "/api/v1/genres/**",
+                        "/api/v1/watchlist/**",
+                        "/api/v1/seen/**");
     }
 }

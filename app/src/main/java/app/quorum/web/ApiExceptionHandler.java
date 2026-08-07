@@ -4,6 +4,7 @@ import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.InvalidAccessTokenException;
 import app.quorum.common.exception.InvalidDataInitException;
 import app.quorum.common.exception.InvalidRefreshTokenException;
+import app.quorum.common.exception.MovieNotFoundException;
 import app.quorum.common.exception.RefreshTokenReusedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -49,6 +50,13 @@ public class ApiExceptionHandler {
                 ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage());
         problem.setTitle("Domain rule violated");
         problem.setProperty("code", exception.getMessage());
+        return problem;
+    }
+
+    @ExceptionHandler(MovieNotFoundException.class)
+    public ProblemDetail handleMovieNotFound(MovieNotFoundException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        problem.setTitle("Movie not found");
         return problem;
     }
 }

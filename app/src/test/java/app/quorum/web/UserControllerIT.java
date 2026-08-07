@@ -8,9 +8,11 @@ import app.quorum.user.domain.Genre;
 import app.quorum.user.domain.User;
 import app.quorum.user.repository.GenreRepository;
 import app.quorum.user.repository.UserRepository;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -33,6 +35,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -69,6 +72,9 @@ class UserControllerIT {
     @Autowired
     private GenreRepository genreRepository;
 
+    @Autowired
+    private JdbcClient jdbcClient;
+
     @Test
     void me_withValidAccessTokenFromLogin_returnsProfile() {
         TelegramLoginResult login = login(444L, "Carol", "carol");
@@ -78,6 +84,22 @@ class UserControllerIT {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).containsEntry("displayName", "Carol");
         assertThat(response.getBody()).containsEntry("username", "carol");
+        assertThat(response.getBody()).containsEntry("watchlistCount", 0);
+        assertThat(response.getBody()).containsEntry("movieNightsCount", 0);
+    }
+
+    @Test
+    void me_afterAddingMovieToWatchlist_watchlistCountIncreases() {
+        TelegramLoginResult login = login(920_001L, "Mia", "mia");
+        long tmdbId = 920_002L;
+        insertFreshMovie(tmdbId);
+
+        ResponseEntity<Map<String, Object>> before = getMe(login.accessToken());
+        addToWatchlist(login.accessToken(), tmdbId);
+        ResponseEntity<Map<String, Object>> after = getMe(login.accessToken());
+
+        assertThat(before.getBody()).containsEntry("watchlistCount", 0);
+        assertThat(after.getBody()).containsEntry("watchlistCount", 1);
     }
 
     @Test
@@ -202,6 +224,29 @@ class UserControllerIT {
         headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
         return restTemplate.exchange(ME_PATH, HttpMethod.DELETE, new HttpEntity<Void>(headers), Void.class);
+    }
+
+    private ResponseEntity<Void> addToWatchlist(String accessToken, long tmdbId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+
+        return restTemplate.exchange(
+                "/api/v1/watchlist/" + tmdbId, HttpMethod.PUT, new HttpEntity<Void>(headers), Void.class);
+    }
+
+    private void insertFreshMovie(long tmdbId) {
+        jdbcClient
+                .sql(
+                        """
+                        INSERT INTO movies (tmdb_id, original_title, vote_avg, vote_count, synced_at)
+                        VALUES (:tmdbId, :title, :voteAvg, :voteCount, :syncedAt)
+                        """)
+                .param("tmdbId", tmdbId)
+                .param("title", "Movie " + tmdbId)
+                .param("voteAvg", new BigDecimal("7.5"))
+                .param("voteCount", 100)
+                .param("syncedAt", Timestamp.from(Instant.now()))
+                .update();
     }
 
     private List<Integer> seedGenres(int count, int startId) {

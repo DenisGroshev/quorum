@@ -4,6 +4,7 @@ import app.quorum.common.exception.InvalidAccessTokenException;
 import app.quorum.user.domain.User;
 import app.quorum.user.repository.UserRepository;
 import app.quorum.user.service.UserProfileService;
+import app.quorum.watchlist.api.WatchlistQueries;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,10 +22,13 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final UserProfileService userProfileService;
+    private final WatchlistQueries watchlistQueries;
 
-    public UserController(UserRepository userRepository, UserProfileService userProfileService) {
+    public UserController(
+            UserRepository userRepository, UserProfileService userProfileService, WatchlistQueries watchlistQueries) {
         this.userRepository = userRepository;
         this.userProfileService = userProfileService;
+        this.watchlistQueries = watchlistQueries;
     }
 
     @GetMapping("/me")
@@ -37,7 +41,9 @@ public class UserController {
                 user.getDisplayName(),
                 user.getUsername(),
                 user.isNotifyEnabled(),
-                user.getLangContent().name());
+                user.getLangContent().name(),
+                watchlistQueries.watchlistCount(userId),
+                0);
     }
 
     @PutMapping("/me/favorite-genres")
