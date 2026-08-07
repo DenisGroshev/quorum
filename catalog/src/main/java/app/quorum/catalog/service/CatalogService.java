@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 
 @Service
@@ -67,6 +68,7 @@ public class CatalogService implements CatalogFacade {
     }
 
     @Override
+    @Transactional
     public MovieDto getOrFetch(long tmdbId, ContentLang lang) {
         Movie movie = movieRepository.findById(tmdbId).orElse(null);
 

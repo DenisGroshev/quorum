@@ -8,4 +8,6 @@ public interface WatchlistQueries {
     Map<Long, WatchlistAgg> aggregateFor(Collection<UUID> userIds);
 
     void removeAndMarkSeen(Collection<UUID> userIds, long tmdbId);
+
+    long watchlistCount(UUID userId);
 }
