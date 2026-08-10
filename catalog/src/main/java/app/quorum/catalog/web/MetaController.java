@@ -4,7 +4,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController
 @RequestMapping("/api/v1/meta")
 public class MetaController {
@@ -18,7 +17,5 @@ public class MetaController {
         return new AttributionResponse(ATTRIBUTION_TEXT, TMDB_URL);
     }
 
-    public record AttributionResponse(String text, String tmdbUrl) {
-
-    }
+    public record AttributionResponse(String text, String tmdbUrl) {}
 }

@@ -2,6 +2,8 @@ package app.quorum.session.domain;
 
 import app.quorum.common.SessionState;
 import app.quorum.common.exception.DomainRuleException;
+import app.quorum.common.exception.SessionForbiddenException;
+import app.quorum.common.exception.SessionStateConflictException;
 import com.github.f4b6a3.uuid.UuidCreator;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -11,7 +13,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,12 +28,13 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Persistable;
 
 @Entity
 @Table(name = "sessions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Session {
+public class Session implements Persistable<UUID> {
 
     @Id
     private UUID id;
@@ -82,9 +88,14 @@ public class Session {
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<SessionMember> members = new HashSet<>();
 
-    @OneToMany(mappedBy = "session", cascade = CascadeType.PERSIST)
+    @OneToMany(
+            mappedBy = "session",
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @OrderBy("position ASC")
     private List<DeckItem> deck = new ArrayList<>();
+
+    @Transient
+    private boolean isNew;
 
     public static final int MAX_MEMBERS = 10;
 
@@ -95,13 +106,25 @@ public class Session {
         s.title = p.title();
         s.state = SessionState.LOBBY;
         s.inviteCode = inviteCode;
-        s.deckSize = p.deckSize();
+        s.deckSize = p.deckSize().shortValue();
         s.voteDeadlineMinutes = p.voteDeadlineMinutes();
         s.watchlistOnly = p.watchlistOnly();
         s.winnerContested = false;
         s.createdAt = clock.instant();
+        s.isNew = true;
         s.members.add(SessionMember.host(s, hostId, clock));
         return s;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @PostPersist
+    @PostLoad
+    void markNotNew() {
+        this.isNew = false;
     }
 
     public void join(UUID userId, Clock clock) {
@@ -142,8 +165,36 @@ public class Session {
     public void cancel(UUID actorId) {
         requireHost(actorId);
         if (state != SessionState.LOBBY && state != SessionState.VOTING)
-            throw new DomainRuleException("session.illegal-transition");
+            throw new SessionStateConflictException("session.illegal-transition");
         transitionTo(SessionState.CANCELLED);
+    }
+
+    public void updateParams(UUID actorId, SessionParams params) {
+        requireHost(actorId);
+        requireState(SessionState.LOBBY, "session.illegal-transition");
+        this.title = params.title();
+        this.deckSize = params.deckSize().shortValue();
+        this.voteDeadlineMinutes = params.voteDeadlineMinutes();
+        this.watchlistOnly = params.watchlistOnly();
+    }
+
+    public void expire() {
+        requireState(SessionState.LOBBY, "session.illegal-transition");
+        transitionTo(SessionState.EXPIRED);
+    }
+
+    public void archive() {
+        requireState(SessionState.DECIDED, "session.illegal-transition");
+        transitionTo(SessionState.ARCHIVED);
+    }
+
+    public void rateBy(UUID actorId, short value, Clock clock) {
+        requireState(SessionState.WATCHED, "session.illegal-transition");
+        SessionMember member = members.stream()
+                .filter(m -> m.getUserId().equals(actorId))
+                .findFirst()
+                .orElseThrow(() -> new SessionForbiddenException("session.forbidden"));
+        member.rate(value, clock, watchedAt);
     }
 
     public void kick(UUID actorId, UUID targetId) {
@@ -158,16 +209,16 @@ public class Session {
     }
 
     private void transitionTo(SessionState target) {
-        if (!state.canTransitionTo(target)) throw new DomainRuleException("session.illegal-transition");
+        if (!state.canTransitionTo(target)) throw new SessionStateConflictException("session.illegal-transition");
         this.state = target;
     }
 
     private void requireState(SessionState expected, String code) {
-        if (state != expected) throw new DomainRuleException(code);
+        if (state != expected) throw new SessionStateConflictException(code);
     }
 
     private void requireHost(UUID actorId) {
-        if (!hostId.equals(actorId)) throw new DomainRuleException("session.forbidden");
+        if (!hostId.equals(actorId)) throw new SessionForbiddenException("session.forbidden");
     }
 
     @Override

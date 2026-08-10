@@ -1,6 +1,7 @@
 package app.quorum.web;
 
 import app.quorum.common.exception.InvalidAccessTokenException;
+import app.quorum.session.domain.SessionQueryService;
 import app.quorum.user.domain.User;
 import app.quorum.user.repository.UserRepository;
 import app.quorum.user.service.UserProfileService;
@@ -23,12 +24,17 @@ public class UserController {
     private final UserRepository userRepository;
     private final UserProfileService userProfileService;
     private final WatchlistQueries watchlistQueries;
+    private final SessionQueryService sessionQueryService;
 
     public UserController(
-            UserRepository userRepository, UserProfileService userProfileService, WatchlistQueries watchlistQueries) {
+            UserRepository userRepository,
+            UserProfileService userProfileService,
+            WatchlistQueries watchlistQueries,
+            SessionQueryService sessionQueryService) {
         this.userRepository = userRepository;
         this.userProfileService = userProfileService;
         this.watchlistQueries = watchlistQueries;
+        this.sessionQueryService = sessionQueryService;
     }
 
     @GetMapping("/me")
@@ -43,7 +49,7 @@ public class UserController {
                 user.isNotifyEnabled(),
                 user.getLangContent().name(),
                 watchlistQueries.watchlistCount(userId),
-                0);
+                sessionQueryService.countWatched(userId));
     }
 
     @PutMapping("/me/favorite-genres")

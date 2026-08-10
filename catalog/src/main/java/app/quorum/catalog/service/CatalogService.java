@@ -82,6 +82,7 @@ public class CatalogService implements CatalogFacade {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Map<Long, MovieDto> getCached(Collection<Long> tmdbIds, ContentLang lang) {
         return movieRepository.findAllMoviesByIds(tmdbIds).stream()
                 .collect(Collectors.toMap(Movie::getTmdbId, m -> toDto(m, lang, properties.posterSizeList())));
