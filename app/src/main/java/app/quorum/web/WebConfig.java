@@ -26,6 +26,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/v1/movies/**",
                         "/api/v1/genres/**",
                         "/api/v1/watchlist/**",
-                        "/api/v1/seen/**");
+                        "/api/v1/seen/**",
+                        "/api/v1/sessions/**");
     }
 }

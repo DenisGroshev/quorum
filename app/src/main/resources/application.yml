@@ -7,6 +7,7 @@ quorum:
     init-data-max-age: 300s
   telegram:
     bot-token: ${TG_BOT_TOKEN}
+    bot-username: ${TG_BOT_USERNAME:quorum_bot}
     miniapp-name: ${TG_APP_NAME}
     send-rate-per-sec: 20
   tmdb:

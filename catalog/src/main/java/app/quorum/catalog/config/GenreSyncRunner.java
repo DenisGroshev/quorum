@@ -15,7 +15,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
-
 @Component
 public class GenreSyncRunner implements ApplicationRunner {
 

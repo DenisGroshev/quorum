@@ -6,6 +6,9 @@ import app.quorum.common.exception.InvalidDataInitException;
 import app.quorum.common.exception.InvalidRefreshTokenException;
 import app.quorum.common.exception.MovieNotFoundException;
 import app.quorum.common.exception.RefreshTokenReusedException;
+import app.quorum.common.exception.SessionForbiddenException;
+import app.quorum.common.exception.SessionNotFoundException;
+import app.quorum.common.exception.SessionStateConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -57,6 +60,29 @@ public class ApiExceptionHandler {
     public ProblemDetail handleMovieNotFound(MovieNotFoundException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
         problem.setTitle("Movie not found");
+        return problem;
+    }
+
+    @ExceptionHandler(SessionNotFoundException.class)
+    public ProblemDetail handleSessionNotFound(SessionNotFoundException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        problem.setTitle("Session not found");
+        return problem;
+    }
+
+    @ExceptionHandler(SessionForbiddenException.class)
+    public ProblemDetail handleSessionForbidden(SessionForbiddenException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.getMessage());
+        problem.setTitle("Forbidden");
+        problem.setProperty("code", exception.getMessage());
+        return problem;
+    }
+
+    @ExceptionHandler(SessionStateConflictException.class)
+    public ProblemDetail handleSessionStateConflict(SessionStateConflictException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setTitle("Session state conflict");
+        problem.setProperty("code", exception.getMessage());
         return problem;
     }
 }

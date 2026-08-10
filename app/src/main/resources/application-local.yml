@@ -4,6 +4,7 @@ quorum:
       secret: ${JWT_SECRET:dev-only-insecure-secret-please-change}
   telegram:
     bot-token: ${TG_BOT_TOKEN:dev-bot-token}
+    bot-username: ${TG_BOT_USERNAME:quorum_dev_bot}
     miniapp-name: ${TG_APP_NAME:quorum-dev}
   tmdb:
     api-token: ${TMDB_TOKEN:dev-tmdb-token}
