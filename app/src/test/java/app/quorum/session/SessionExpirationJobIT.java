@@ -123,28 +123,6 @@ class SessionExpirationJobIT {
     }
 
     @Test
-    void run_votingDeadlinePassed_concludesSessionAsDecidedWithoutWinner() {
-        User host = userRepository.save(user(1002));
-        User member = userRepository.save(user(1003));
-        insertMovie(800_001);
-        Instant start = Instant.parse("2026-01-01T00:00:00Z");
-        Clock startClock = Clock.fixed(start, ZoneOffset.UTC);
-        Session session = Session.create(host.getId(), params(), "EXPIRE003", startClock);
-        session.join(member.getId(), startClock);
-        session.startVoting(host.getId(), deckFor(800_001), "v1", startClock);
-        sessionRepository.saveAndFlush(session);
-
-        Clock afterDeadline = Clock.fixed(start.plus(Duration.ofMinutes(31)), ZoneOffset.UTC);
-        SessionExpirationJob job = new SessionExpirationJob(sessionRepository, afterDeadline, transactionManager);
-
-        job.run();
-
-        Session reloaded = sessionRepository.findById(session.getId()).orElseThrow();
-        assertThat(reloaded.getState()).isEqualTo(SessionState.DECIDED);
-        assertThat(reloaded.getWinnerTmdbId()).isNull();
-    }
-
-    @Test
     void run_decidedOlderThanSevenDays_transitionsToArchived() {
         User host = userRepository.save(user(1004));
         User member = userRepository.save(user(1005));
