@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import app.quorum.auth.api.TelegramProfile;
+import app.quorum.common.ContentLang;
 import app.quorum.user.api.UserBrief;
 import app.quorum.user.domain.User;
 import app.quorum.user.repository.UserRepository;
@@ -66,5 +67,16 @@ class UserQueriesImplTest {
 
         assertThat(result).containsKey(userWithNoGenres);
         assertThat(result.get(userWithNoGenres)).isEmpty();
+    }
+
+    @Test
+    void contentLangs_returnsOneEntryPerFoundUser() {
+        User ru = User.registerFromTelegram(new TelegramProfile(3L, "Ru", "ru", null, "ru"), Clock.systemUTC());
+        User en = User.registerFromTelegram(new TelegramProfile(4L, "En", "en", null, "xx"), Clock.systemUTC());
+        when(userRepository.findAllById(List.of(ru.getId(), en.getId()))).thenReturn(List.of(ru, en));
+
+        Map<UUID, ContentLang> result = queries.contentLangs(List.of(ru.getId(), en.getId()));
+
+        assertThat(result).containsEntry(ru.getId(), ContentLang.RU).containsEntry(en.getId(), ContentLang.EN);
     }
 }

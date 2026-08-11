@@ -129,6 +129,24 @@ class SessionServiceIT {
                 .single();
     }
 
+    private BigDecimal deckItemScore(UUID sessionId, long tmdbId) {
+        return jdbcClient
+                .sql("SELECT score FROM deck_items WHERE session_id = :sessionId AND tmdb_id = :tmdbId")
+                .param("sessionId", sessionId)
+                .param("tmdbId", tmdbId)
+                .query(BigDecimal.class)
+                .single();
+    }
+
+    private String deckItemReasons(UUID sessionId, long tmdbId) {
+        return jdbcClient
+                .sql("SELECT reasons::text FROM deck_items WHERE session_id = :sessionId AND tmdb_id = :tmdbId")
+                .param("sessionId", sessionId)
+                .param("tmdbId", tmdbId)
+                .query(String.class)
+                .single();
+    }
+
     private void addToWatchlist(UUID userId, long tmdbId) {
         jdbcClient
                 .sql("INSERT INTO watchlist_items (user_id, tmdb_id, added_at) VALUES (:userId, :tmdbId, :addedAt)")
@@ -389,6 +407,8 @@ class SessionServiceIT {
         insertMovie(700_002);
         SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
         sessionService.join(created.session().getInviteCode(), member.getId());
+        addToWatchlist(host.getId(), 700_001);
+        addToWatchlist(member.getId(), 700_001);
 
         sessionService.startVoting(created.session().getId(), host.getId());
 
@@ -396,6 +416,8 @@ class SessionServiceIT {
         assertThat(reloaded.getState()).isEqualTo(SessionState.VOTING);
         assertThat(reloaded.getVotingDeadlineAt()).isNotNull();
         assertThat(deckItemCount(created.session().getId())).isGreaterThan(0);
+        assertThat(deckItemScore(created.session().getId(), 700_001)).isGreaterThan(BigDecimal.ZERO);
+        assertThat(deckItemReasons(created.session().getId(), 700_001)).isNotEqualTo("[]");
     }
 
     @Test
@@ -809,6 +831,8 @@ class SessionServiceIT {
         insertMovie(700_030);
         SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
         sessionService.join(created.session().getInviteCode(), member.getId());
+        // real matching needs a real candidate to build a non-empty deck from
+        addToWatchlist(host.getId(), 700_030);
 
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);

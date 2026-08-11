@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import app.quorum.auth.api.TelegramProfile;
+import app.quorum.common.ContentLang;
 import app.quorum.common.exception.SessionNotFoundException;
 import app.quorum.session.domain.Session;
 import app.quorum.session.domain.SessionParams;
@@ -206,6 +207,11 @@ class SessionViewRepositoryIT {
 
             @Override
             public Map<UUID, Set<Integer>> favGenres(Collection<UUID> ids) {
+                throw new UnsupportedOperationException("not needed for this test");
+            }
+
+            @Override
+            public Map<UUID, ContentLang> contentLangs(Collection<UUID> ids) {
                 throw new UnsupportedOperationException("not needed for this test");
             }
         };
