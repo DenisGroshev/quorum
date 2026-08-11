@@ -40,7 +40,6 @@ public class SessionExpirationJob {
     @Scheduled(fixedDelayString = "PT1M")
     public void run() {
         expireStaleLobbies();
-        concludeOverdueVoting();
         archiveOldDecisions();
     }
 
@@ -50,15 +49,6 @@ public class SessionExpirationJob {
                 SessionState.LOBBY, cutoff, PageRequest.of(0, BATCH_SIZE));
         for (Session found : batch) {
             processOne(found.getId(), Session::expire);
-        }
-    }
-
-    private void concludeOverdueVoting() {
-        Instant cutoff = clock.instant();
-        List<Session> batch = sessionRepository.findByStateAndVotingDeadlineAtBefore(
-                SessionState.VOTING, cutoff, PageRequest.of(0, BATCH_SIZE));
-        for (Session found : batch) {
-            processOne(found.getId(), session -> session.decide(null, false, clock));
         }
     }
 

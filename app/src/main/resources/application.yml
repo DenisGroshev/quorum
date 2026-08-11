@@ -10,6 +10,8 @@ quorum:
     bot-username: ${TG_BOT_USERNAME:quorum_bot}
     miniapp-name: ${TG_APP_NAME}
     send-rate-per-sec: 20
+  vote:
+    veto-threshold: 0.6
   tmdb:
     base-url: ${TMDB_BASE_URL:https://api.themoviedb.org/3}
     api-token: ${TMDB_TOKEN}

@@ -34,4 +34,19 @@ class SessionModuleArchitectureTest {
 
         rule.check(classes);
     }
+
+    @Test
+    void sessionModule_neverDependsOnVoting() {
+        ArchRule rule = noClasses()
+                .that()
+                .resideInAPackage("app.quorum.session..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("app.quorum.voting..")
+                .because("voting depends on session (allowed), not the other way around; the scheduler that watches "
+                        + "voting deadlines lives in voting.domain.VotingDeadlineJob and reads overdue sessions "
+                        + "through SessionGuard, session never reaches into voting directly");
+
+        rule.check(classes);
+    }
 }

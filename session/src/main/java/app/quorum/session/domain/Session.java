@@ -179,7 +179,9 @@ public class Session implements Persistable<UUID> {
     }
 
     public void expire() {
-        requireState(SessionState.LOBBY, "session.illegal-transition");
+        if (state != SessionState.LOBBY && state != SessionState.VOTING) {
+            throw new SessionStateConflictException("session.illegal-transition");
+        }
         transitionTo(SessionState.EXPIRED);
     }
 
@@ -195,6 +197,17 @@ public class Session implements Persistable<UUID> {
                 .findFirst()
                 .orElseThrow(() -> new SessionForbiddenException("session.forbidden"));
         member.rate(value, clock, watchedAt);
+    }
+
+    public boolean markMemberFinishedVoting(UUID userId, Clock clock) {
+        SessionMember member = members.stream()
+                .filter(m -> m.getUserId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new SessionForbiddenException("session.forbidden"));
+        if (member.getCompletedVotingAt() == null) {
+            member.markVotingCompleted(clock);
+        }
+        return members.stream().allMatch(m -> m.getCompletedVotingAt() != null);
     }
 
     public void kick(UUID actorId, UUID targetId) {
