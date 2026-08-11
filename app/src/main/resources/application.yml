@@ -34,7 +34,12 @@ quorum:
       long-runtime: 15
       foreign-low-rated: 10
     runtime-penalty-threshold-min: 150
-    veto-dislike-share: 0.60
+    recency-horizon-days: 180
+    min-vote-count-for-rating: 100
+    default-rating-when-few-votes: 0.3
+    max-genre-share: 0.4
+    candidate-multiplier: 3
+    availability-stub: 0.5
   limits:
     watchlist-max: 1000
     seen-max: 5000

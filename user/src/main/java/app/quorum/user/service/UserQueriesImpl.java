@@ -1,5 +1,6 @@
 package app.quorum.user.service;
 
+import app.quorum.common.ContentLang;
 import app.quorum.user.api.UserBrief;
 import app.quorum.user.api.UserQueries;
 import app.quorum.user.domain.User;
@@ -43,5 +44,10 @@ public class UserQueriesImpl implements UserQueries {
         }
 
         return result;
+    }
+
+    @Override
+    public Map<UUID, ContentLang> contentLangs(Collection<UUID> ids) {
+        return userRepository.findAllById(ids).stream().collect(Collectors.toMap(User::getId, User::getLangContent));
     }
 }
