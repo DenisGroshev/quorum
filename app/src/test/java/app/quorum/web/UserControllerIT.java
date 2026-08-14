@@ -180,6 +180,18 @@ class UserControllerIT {
     }
 
     @Test
+    void updateNotifyPermission_reportedDenied_disablesNotifications() {
+        TelegramLoginResult login = login(805L, "Kate", "kate");
+
+        ResponseEntity<Void> response =
+                patchNotifyPermission(login.accessToken(), new UpdateNotifyPermissionRequest(false));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        User user = userRepository.findByTgUserId(805L).orElseThrow();
+        assertThat(user.isNotifyEnabled()).isFalse();
+    }
+
+    @Test
     void deleteAccount_anonymizesProfileAndInvalidatesOldAccessTokenAndRefreshToken() {
         TelegramLoginResult login = login(901L, "Karl", "karl");
         UUID userId = userIdOf(login.accessToken());
@@ -291,9 +303,17 @@ class UserControllerIT {
         return restTemplate.exchange("/api/v1/users/me/settings", HttpMethod.PATCH, entity, Void.class);
     }
 
+    private ResponseEntity<Void> patchNotifyPermission(String accessToken, UpdateNotifyPermissionRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        HttpEntity<UpdateNotifyPermissionRequest> entity = new HttpEntity<>(request, headers);
+
+        return restTemplate.exchange("/api/v1/users/me/notify-permission", HttpMethod.PATCH, entity, Void.class);
+    }
+
     private TelegramLoginResult login(long tgUserId, String firstName, String username) {
-        String userJson =
-                "{\"id\":" + tgUserId + ",\"first_name\":\"" + firstName + "\",\"username\":\"" + username + "\"}";
+        String userJson = "{\"id\":" + tgUserId + ",\"first_name\":\"" + firstName + "\",\"username\":\"" + username
+                + "\",\"allows_write_to_pm\":true}";
         String initData =
                 sign(Map.of("auth_date", String.valueOf(Instant.now().getEpochSecond()), "user", userJson), BOT_TOKEN);
 

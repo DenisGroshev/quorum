@@ -91,6 +91,15 @@ public class OutboxMessage {
         this.nextAttemptAt = c.instant().plus(Duration.ofSeconds((long) Math.pow(4, attempts)));
     }
 
+    public void scheduleRetry(Clock c, Duration explicitDelay) {
+        this.attempts++;
+        if (attempts >= 3) {
+            this.status = OutboxStatus.FAILED;
+            return;
+        }
+        this.nextAttemptAt = c.instant().plus(explicitDelay);
+    }
+
     public void skip() {
         this.status = OutboxStatus.SKIPPED;
     }

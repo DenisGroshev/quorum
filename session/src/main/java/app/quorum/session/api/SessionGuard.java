@@ -23,4 +23,10 @@ public interface SessionGuard {
     VotingProgress votingProgress(UUID sessionId);
 
     void requireHost(UUID sessionId, UUID userId);
+
+    NotificationSessionView notificationView(UUID sessionId);
+
+    List<UUID> votingSessionsNearingDeadline(Instant from, Instant to, int limit);
+
+    List<UUID> membersNotFinishedVoting(UUID sessionId);
 }

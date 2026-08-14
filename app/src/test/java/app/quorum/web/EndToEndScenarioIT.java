@@ -78,7 +78,7 @@ class EndToEndScenarioIT {
 
     private TelegramLoginResult login(long tgUserId, String firstName, String username) {
         String userJson = "{\"id\":" + tgUserId + ",\"first_name\":\"" + firstName + "\",\"username\":\"" + username
-                + "\",\"language_code\":\"ru\"}";
+                + "\",\"language_code\":\"ru\",\"allows_write_to_pm\":true}";
         String initData =
                 sign(Map.of("auth_date", String.valueOf(Instant.now().getEpochSecond()), "user", userJson), BOT_TOKEN);
 

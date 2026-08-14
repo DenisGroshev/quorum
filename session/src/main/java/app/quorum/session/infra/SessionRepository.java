@@ -36,6 +36,9 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
 
     List<Session> findByStateAndVotingDeadlineAtBefore(SessionState state, Instant cutoff, Pageable pageable);
 
+    List<Session> findByStateAndVotingDeadlineAtBetween(
+            SessionState state, Instant from, Instant to, Pageable pageable);
+
     List<Session> findByStateAndDecidedAtBefore(SessionState state, Instant cutoff, Pageable pageable);
 
     List<Session> findByMembers_Key_UserIdOrderByCreatedAtDesc(UUID userId);
