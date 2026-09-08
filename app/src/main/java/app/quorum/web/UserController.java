@@ -68,6 +68,14 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/me/notify-permission")
+    public ResponseEntity<Void> updateNotifyPermission(
+            @RequestAttribute(BearerAuthInterceptor.USER_ID_ATTRIBUTE) UUID userId,
+            @RequestBody UpdateNotifyPermissionRequest request) {
+        userProfileService.updateSettings(userId, request.granted(), null);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(@RequestAttribute(BearerAuthInterceptor.USER_ID_ATTRIBUTE) UUID userId) {
         userProfileService.deleteAccount(userId);

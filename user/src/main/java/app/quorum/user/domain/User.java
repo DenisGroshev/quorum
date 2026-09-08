@@ -67,7 +67,7 @@ public class User {
         u.id = UuidCreator.getTimeOrderedEpoch();
         u.tgUserId = p.tgUserId();
         u.langContent = ContentLang.fromTelegramCode(p.languageCode());
-        u.notifyEnabled = true;
+        u.notifyEnabled = Boolean.TRUE.equals(p.allowsWriteToPm());
         u.tokenVer = 0;
         u.createdAt = clock.instant();
         u.syncFromTelegram(p);
@@ -78,6 +78,9 @@ public class User {
         this.displayName = p.displayName();
         this.username = p.username();
         this.avatarUrl = p.avatarUrl();
+        if (p.allowsWriteToPm() != null) {
+            this.notifyEnabled = p.allowsWriteToPm();
+        }
     }
 
     public void replaceFavGenres(Set<Integer> genreIds) {

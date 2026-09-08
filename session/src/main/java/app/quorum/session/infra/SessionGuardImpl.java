@@ -3,12 +3,14 @@ package app.quorum.session.infra;
 import app.quorum.common.SessionState;
 import app.quorum.common.exception.SessionForbiddenException;
 import app.quorum.session.api.DeckCardInfo;
+import app.quorum.session.api.NotificationSessionView;
 import app.quorum.session.api.SessionGuard;
 import app.quorum.session.api.VotingContext;
 import app.quorum.session.api.VotingProgress;
 import app.quorum.session.domain.DeckItem;
 import app.quorum.session.domain.DeckReason;
 import app.quorum.session.domain.Session;
+import app.quorum.session.domain.SessionMember;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -140,5 +142,45 @@ public class SessionGuardImpl implements SessionGuard {
         if (!session.getHostId().equals(userId)) {
             throw new SessionForbiddenException("session.forbidden");
         }
+    }
+
+    @Override
+    public NotificationSessionView notificationView(UUID sessionId) {
+        return requiresNewTransactionTemplate.execute(status -> {
+            Session session = sessionRepository
+                    .findById(sessionId)
+                    .orElseThrow(() -> new SessionForbiddenException("session.forbidden"));
+            List<UUID> memberIds =
+                    session.getMembers().stream().map(SessionMember::getUserId).toList();
+            return new NotificationSessionView(
+                    session.getHostId(),
+                    session.getTitle(),
+                    session.getInviteCode(),
+                    memberIds,
+                    session.getWinnerTmdbId(),
+                    session.getVotingDeadlineAt());
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UUID> votingSessionsNearingDeadline(Instant from, Instant to, int limit) {
+        return sessionRepository
+                .findByStateAndVotingDeadlineAtBetween(SessionState.VOTING, from, to, PageRequest.of(0, limit))
+                .stream()
+                .map(Session::getId)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UUID> membersNotFinishedVoting(UUID sessionId) {
+        Session session = sessionRepository
+                .findById(sessionId)
+                .orElseThrow(() -> new SessionForbiddenException("session.forbidden"));
+        return session.getMembers().stream()
+                .filter(m -> m.getCompletedVotingAt() == null)
+                .map(SessionMember::getUserId)
+                .toList();
     }
 }

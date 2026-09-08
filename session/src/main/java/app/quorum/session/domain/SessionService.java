@@ -3,7 +3,9 @@ package app.quorum.session.domain;
 import app.quorum.common.SessionState;
 import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.SessionNotFoundException;
+import app.quorum.session.api.SessionCancelledEvent;
 import app.quorum.session.api.SessionWatchedEvent;
+import app.quorum.session.api.VotingStartedEvent;
 import app.quorum.session.infra.SessionRepository;
 import app.quorum.session.web.dto.CreateSessionRequest;
 import app.quorum.session.web.dto.UpdateSessionParamsRequest;
@@ -103,6 +105,7 @@ public class SessionService {
                     new DeckRequest(session.getId(), memberIds, session.getDeckSize(), session.isWatchlistOnly()));
             session.startVoting(actorId, deckResult, deckResult.configVersion(), clock);
             sessionRepository.saveAndFlush(session);
+            eventPublisher.publishEvent(new VotingStartedEvent(session.getId()));
         });
     }
 
@@ -111,6 +114,7 @@ public class SessionService {
             Session session = requireMember(sessionId, actorId);
             session.cancel(actorId);
             sessionRepository.saveAndFlush(session);
+            eventPublisher.publishEvent(new SessionCancelledEvent(session.getId()));
         });
     }
 

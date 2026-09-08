@@ -9,6 +9,8 @@ import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.SessionForbiddenException;
 import app.quorum.common.exception.SessionNotFoundException;
 import app.quorum.common.exception.SessionStateConflictException;
+import app.quorum.session.api.SessionCancelledEvent;
+import app.quorum.session.api.VotingStartedEvent;
 import app.quorum.session.domain.DeckBuilder;
 import app.quorum.session.domain.DeckResult;
 import app.quorum.session.domain.InviteCodeGenerator;
@@ -28,6 +30,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -42,7 +45,11 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.PayloadApplicationEvent;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -93,6 +100,9 @@ class SessionServiceIT {
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private ConfigurableApplicationContext applicationContext;
 
     private void insertMovie(long tmdbId) {
         jdbcClient
@@ -421,6 +431,31 @@ class SessionServiceIT {
     }
 
     @Test
+    void startVoting_publishesVotingStartedEvent() {
+        User host = userRepository.save(user(56));
+        User member = userRepository.save(user(57));
+        insertMovie(700_004);
+        SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
+        sessionService.join(created.session().getInviteCode(), member.getId());
+        addToWatchlist(host.getId(), 700_004);
+        addToWatchlist(member.getId(), 700_004);
+        List<VotingStartedEvent> received = new ArrayList<>();
+        ApplicationListener<ApplicationEvent> listener = event -> {
+            if (event instanceof PayloadApplicationEvent<?> payloadEvent
+                    && payloadEvent.getPayload() instanceof VotingStartedEvent votingStartedEvent) {
+                received.add(votingStartedEvent);
+            }
+        };
+        applicationContext.addApplicationListener(listener);
+
+        sessionService.startVoting(created.session().getId(), host.getId());
+
+        assertThat(received)
+                .extracting(VotingStartedEvent::sessionId)
+                .containsExactly(created.session().getId());
+    }
+
+    @Test
     void startVoting_nonHostMember_throwsForbidden() {
         User host = userRepository.save(user(52));
         User member = userRepository.save(user(53));
@@ -461,6 +496,26 @@ class SessionServiceIT {
 
         Session reloaded = sessionRepository.findById(created.session().getId()).orElseThrow();
         assertThat(reloaded.getState()).isEqualTo(SessionState.CANCELLED);
+    }
+
+    @Test
+    void cancelSession_publishesSessionCancelledEvent() {
+        User host = userRepository.save(user(78));
+        SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
+        List<SessionCancelledEvent> received = new ArrayList<>();
+        ApplicationListener<ApplicationEvent> listener = event -> {
+            if (event instanceof PayloadApplicationEvent<?> payloadEvent
+                    && payloadEvent.getPayload() instanceof SessionCancelledEvent sessionCancelledEvent) {
+                received.add(sessionCancelledEvent);
+            }
+        };
+        applicationContext.addApplicationListener(listener);
+
+        sessionService.cancelSession(created.session().getId(), host.getId());
+
+        assertThat(received)
+                .extracting(SessionCancelledEvent::sessionId)
+                .containsExactly(created.session().getId());
     }
 
     @Test

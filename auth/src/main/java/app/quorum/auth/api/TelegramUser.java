@@ -8,4 +8,5 @@ public record TelegramUser(
         @JsonProperty("last_name") String lastName,
         @JsonProperty("username") String userName,
         @JsonProperty("photo_url") String photoUrl,
-        @JsonProperty("language_code") String languageCode) {}
+        @JsonProperty("language_code") String languageCode,
+        @JsonProperty("allows_write_to_pm") Boolean allowsWriteToPm) {}

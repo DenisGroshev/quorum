@@ -51,6 +51,7 @@ public class TelegramLoginService {
                 displayName,
                 telegramUser.userName(),
                 telegramUser.photoUrl(),
-                telegramUser.languageCode());
+                telegramUser.languageCode(),
+                telegramUser.allowsWriteToPm());
     }
 }
