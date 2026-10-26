@@ -40,9 +40,6 @@ public class TelegramBotClient {
                     .toBodilessEntity();
             return TelegramSendResult.success();
         } catch (HttpClientErrorException e) {
-            // 429 is Telegram's rate limit signal - retry later. Every other 4xx (bad
-            // chat id, bot blocked/kicked, malformed request, ...) will never succeed
-            // on retry.
             if (e.getStatusCode().value() == TOO_MANY_REQUESTS) {
                 return TelegramSendResult.transientFailure(e.getMessage());
             }

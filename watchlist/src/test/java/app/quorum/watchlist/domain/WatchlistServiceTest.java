@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import app.quorum.catalog.api.CatalogFacade;
 import app.quorum.catalog.api.MovieDto;
 import app.quorum.common.ContentLang;
+import app.quorum.common.analytics.AnalyticsEvent;
 import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.MovieNotFoundException;
 import app.quorum.watchlist.api.MovieFlags;
@@ -38,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -79,6 +81,9 @@ class WatchlistServiceTest {
     @Mock
     private WatchlistBulkRepository watchlistBulkRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private WatchlistService service;
 
     @BeforeEach
@@ -90,6 +95,7 @@ class WatchlistServiceTest {
                 watchlistAggRepository,
                 watchlistBulkRepository,
                 catalogFacade,
+                eventPublisher,
                 CLOCK,
                 WATCHLIST_MAX,
                 SEEN_MAX,
@@ -107,7 +113,7 @@ class WatchlistServiceTest {
         when(watchlistItemRepository.existsById(KEY)).thenReturn(false);
         when(watchlistItemRepository.countByKeyUserId(USER_ID)).thenReturn(0L);
 
-        service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU);
+        service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search");
 
         InOrder order = inOrder(catalogFacade, watchlistItemRepository);
         order.verify(catalogFacade).getOrFetch(TMDB_ID, ContentLang.RU);
@@ -118,14 +124,28 @@ class WatchlistServiceTest {
     }
 
     @Test
-    void addToWatchlist_alreadyInList_returnsWithoutInsertingOrCheckingLimit() {
+    void addToWatchlist_notYetInList_recordsWatchlistAddAnalyticsEventWithSource() {
+        when(catalogFacade.getOrFetch(TMDB_ID, ContentLang.RU)).thenReturn(movieDto(TMDB_ID));
+        when(watchlistItemRepository.existsById(KEY)).thenReturn(false);
+        when(watchlistItemRepository.countByKeyUserId(USER_ID)).thenReturn(0L);
+
+        service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search");
+
+        verify(eventPublisher)
+                .publishEvent(
+                        new AnalyticsEvent("watchlist_add", USER_ID, Map.of("tmdbId", TMDB_ID, "source", "search")));
+    }
+
+    @Test
+    void addToWatchlist_alreadyInList_returnsWithoutInsertingOrCheckingLimitOrRecordingEvent() {
         when(catalogFacade.getOrFetch(TMDB_ID, ContentLang.RU)).thenReturn(movieDto(TMDB_ID));
         when(watchlistItemRepository.existsById(KEY)).thenReturn(true);
 
-        assertDoesNotThrow(() -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU));
+        assertDoesNotThrow(() -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search"));
 
         verify(watchlistItemRepository, never()).saveAndFlush(any());
         verify(watchlistItemRepository, never()).countByKeyUserId(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -134,7 +154,8 @@ class WatchlistServiceTest {
         when(watchlistItemRepository.existsById(KEY)).thenReturn(false);
         when(watchlistItemRepository.countByKeyUserId(USER_ID)).thenReturn((long) WATCHLIST_MAX);
 
-        assertThrows(DomainRuleException.class, () -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU));
+        assertThrows(
+                DomainRuleException.class, () -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search"));
 
         verify(watchlistItemRepository, never()).saveAndFlush(any());
     }
@@ -145,7 +166,8 @@ class WatchlistServiceTest {
                 .thenThrow(HttpClientErrorException.create(
                         HttpStatus.NOT_FOUND, "Not Found", HttpHeaders.EMPTY, new byte[0], null));
 
-        assertThrows(MovieNotFoundException.class, () -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU));
+        assertThrows(
+                MovieNotFoundException.class, () -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search"));
 
         verifyNoInteractions(watchlistItemRepository);
     }
@@ -157,9 +179,10 @@ class WatchlistServiceTest {
         when(watchlistItemRepository.countByKeyUserId(USER_ID)).thenReturn(0L);
         when(watchlistItemRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("dup key"));
 
-        assertDoesNotThrow(() -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU));
+        assertDoesNotThrow(() -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search"));
 
         verify(watchlistItemRepository, times(2)).existsById(KEY);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -171,7 +194,8 @@ class WatchlistServiceTest {
         when(watchlistItemRepository.saveAndFlush(any())).thenThrow(failure);
 
         DataIntegrityViolationException thrown = assertThrows(
-                DataIntegrityViolationException.class, () -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU));
+                DataIntegrityViolationException.class,
+                () -> service.addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search"));
         assertThat(thrown).isSameAs(failure);
     }
 

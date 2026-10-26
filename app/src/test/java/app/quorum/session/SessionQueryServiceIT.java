@@ -222,6 +222,47 @@ class SessionQueryServiceIT {
     }
 
     @Test
+    void listHistory_membersRated_showsAverageRating() {
+        User host = userRepository.save(user(2050));
+        User member = userRepository.save(user(2051));
+        insertMovie(810_040, "Оценённый фильм");
+        Instant t0 = Instant.parse("2026-01-01T00:00:00Z");
+        Clock clock = Clock.fixed(t0, ZoneOffset.UTC);
+
+        Session watched = watchedSession(host.getId(), member.getId(), "RAT00001", 810_040, t0);
+        watched.rateBy(host.getId(), (short) 4, clock);
+        watched.rateBy(member.getId(), (short) 5, clock);
+        sessionRepository.saveAndFlush(watched);
+
+        List<SessionHistoryItem> history = sessionQueryService.listHistory(host.getId(), ContentLang.RU);
+
+        assertThat(history)
+                .filteredOn(item -> item.id().equals(watched.getId()))
+                .singleElement()
+                .extracting(SessionHistoryItem::averageRating)
+                .isEqualTo(new BigDecimal("4.5"));
+    }
+
+    @Test
+    void listHistory_noRatings_averageRatingIsNull() {
+        User host = userRepository.save(user(2052));
+        User member = userRepository.save(user(2053));
+        insertMovie(810_041, "Без оценок");
+        Instant t0 = Instant.parse("2026-01-01T00:00:00Z");
+
+        Session watched = watchedSession(host.getId(), member.getId(), "RAT00002", 810_041, t0);
+        sessionRepository.saveAndFlush(watched);
+
+        List<SessionHistoryItem> history = sessionQueryService.listHistory(host.getId(), ContentLang.RU);
+
+        assertThat(history)
+                .filteredOn(item -> item.id().equals(watched.getId()))
+                .singleElement()
+                .extracting(SessionHistoryItem::averageRating)
+                .isNull();
+    }
+
+    @Test
     void listHistory_queryCountStaysFlat_regardlessOfSessionCount_forSameWinner() {
         User soloHost = userRepository.save(user(2030));
         User soloMember = userRepository.save(user(2031));

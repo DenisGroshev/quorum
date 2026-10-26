@@ -3,6 +3,7 @@ package app.quorum.voting.domain;
 import app.quorum.catalog.api.CatalogFacade;
 import app.quorum.catalog.api.MovieDto;
 import app.quorum.common.ContentLang;
+import app.quorum.common.analytics.AnalyticsEvent;
 import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.SessionStateConflictException;
 import app.quorum.session.api.SessionGuard;
@@ -77,6 +78,7 @@ public class VotingService {
         } else {
             voteRepository.save(new Vote(key, value, clock));
         }
+        eventPublisher.publishEvent(new AnalyticsEvent("vote_cast", userId, Map.of("voteType", value.name())));
 
         long votesCast = voteRepository.countByKey_SessionIdAndKey_UserId(sessionId, userId);
         if (votesCast >= context.deckTmdbIds().size()) {
@@ -94,6 +96,11 @@ public class VotingService {
         boolean concluded = sessionGuard.concludeVoting(sessionId, result.winnerTmdbId(), result.contested(), clock);
         if (concluded) {
             eventPublisher.publishEvent(new VotingFinishedEvent(sessionId));
+            if (result.winnerTmdbId() != null) {
+                int votersCount = (int) voteRepository.countDistinctVotersBySessionId(sessionId);
+                eventPublisher.publishEvent(new AnalyticsEvent(
+                        "session_decided", null, Map.of("contested", result.contested(), "votedCount", votersCount)));
+            }
         }
         return concluded;
     }

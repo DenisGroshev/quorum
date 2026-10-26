@@ -11,11 +11,12 @@ public class MetaController {
     private static final String ATTRIBUTION_TEXT =
             "This product uses the TMDB API but is not endorsed or certified by TMDB.";
     private static final String TMDB_URL = "https://www.themoviedb.org";
+    private static final String LOGO_URL = "https://www.themoviedb.org/about/logos-attribution";
 
     @GetMapping("/attribution")
     public AttributionResponse attribution() {
-        return new AttributionResponse(ATTRIBUTION_TEXT, TMDB_URL);
+        return new AttributionResponse(ATTRIBUTION_TEXT, TMDB_URL, LOGO_URL);
     }
 
-    public record AttributionResponse(String text, String tmdbUrl) {}
+    public record AttributionResponse(String text, String tmdbUrl, String logoUrl) {}
 }

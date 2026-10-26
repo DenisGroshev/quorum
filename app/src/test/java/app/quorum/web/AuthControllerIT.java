@@ -12,6 +12,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -64,6 +66,18 @@ class AuthControllerIT {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private JdbcClient jdbcClient;
+
+    private long analyticsEventCount(String type, UUID userId) {
+        return jdbcClient
+                .sql("SELECT COUNT(*) FROM analytics_events WHERE type = :type AND user_id = :userId")
+                .param("type", type)
+                .param("userId", userId)
+                .query(Long.class)
+                .single();
+    }
+
     @Test
     void telegram_validInitData_issuesTokensAndPersistsUser() {
         ResponseEntity<Map<String, Object>> response =
@@ -90,6 +104,23 @@ class AuthControllerIT {
         User saved = userRepository.findByTgUserId(222L).orElseThrow();
         assertThat(saved.getDisplayName()).isEqualTo("Bob New");
         assertThat(saved.getUsername()).isEqualTo("bob_new");
+    }
+
+    @Test
+    void telegram_firstLogin_recordsUserRegisteredAnalyticsEventExactlyOnce() {
+        callTelegramLogin(telegramUserJson(444L, "Carol", "First", "carol"), Instant.now());
+
+        User saved = userRepository.findByTgUserId(444L).orElseThrow();
+        assertThat(analyticsEventCount("user_registered", saved.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void telegram_secondLoginOfSameUser_doesNotRecordAnotherUserRegisteredEvent() {
+        callTelegramLogin(telegramUserJson(445L, "Dan", "First", "dan"), Instant.now());
+        callTelegramLogin(telegramUserJson(445L, "Dan", "Second", "dan"), Instant.now());
+
+        User saved = userRepository.findByTgUserId(445L).orElseThrow();
+        assertThat(analyticsEventCount("user_registered", saved.getId())).isEqualTo(1);
     }
 
     @Test

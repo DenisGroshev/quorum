@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import app.quorum.auth.api.TelegramProfile;
 import app.quorum.auth.service.RefreshTokenService;
 import app.quorum.common.ContentLang;
+import app.quorum.common.analytics.AnalyticsEvent;
 import app.quorum.common.exception.DomainRuleException;
 import app.quorum.user.domain.User;
 import app.quorum.user.repository.GenreRepository;
@@ -16,6 +17,7 @@ import app.quorum.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class UserProfileServiceTest {
@@ -40,12 +43,15 @@ class UserProfileServiceTest {
     @Mock
     private RefreshTokenService refreshTokenService;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private UserProfileService service;
     private User user;
 
     @BeforeEach
     void setUp() {
-        service = new UserProfileService(userRepository, genreRepository, refreshTokenService, CLOCK);
+        service = new UserProfileService(userRepository, genreRepository, refreshTokenService, eventPublisher, CLOCK);
         user = User.registerFromTelegram(new TelegramProfile(1L, "A", "a", null, "ru"), Clock.systemUTC());
     }
 
@@ -58,6 +64,8 @@ class UserProfileServiceTest {
         service.replaceFavoriteGenres(user.getId(), genreIds);
 
         assertThat(user.getFavGenreIds()).isEqualTo(genreIds);
+        verify(eventPublisher)
+                .publishEvent(new AnalyticsEvent("onboarding_genres_set", user.getId(), Map.of("genreCount", 10)));
     }
 
     @Test
@@ -111,5 +119,6 @@ class UserProfileServiceTest {
         assertThat(user.getTokenVer()).isGreaterThan(tokenVerBefore);
         verify(refreshTokenService, times(1)).revokeAllForUser(user.getId());
         verify(userRepository).save(user);
+        verify(eventPublisher).publishEvent(new AnalyticsEvent("account_deleted", user.getId()));
     }
 }

@@ -114,9 +114,7 @@ class CatalogControllerTest {
                 .andExpect(jsonPath("$[0].title").value("Матрица"))
                 .andExpect(jsonPath("$[0].year").value(1999))
                 .andExpect(jsonPath("$[0].posterUrl").value("https://img/w185/poster.jpg"))
-                .andExpect(jsonPath("$[0].genres[0]").value("Боевик"))
-                .andExpect(jsonPath("$[0].inWatchlist").value(false))
-                .andExpect(jsonPath("$[0].seen").value(false));
+                .andExpect(jsonPath("$[0].genres[0]").value("Боевик"));
     }
 
     @Test

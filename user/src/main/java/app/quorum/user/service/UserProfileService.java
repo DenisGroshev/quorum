@@ -2,14 +2,17 @@ package app.quorum.user.service;
 
 import app.quorum.auth.service.RefreshTokenService;
 import app.quorum.common.ContentLang;
+import app.quorum.common.analytics.AnalyticsEvent;
 import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.InvalidAccessTokenException;
 import app.quorum.user.domain.User;
 import app.quorum.user.repository.GenreRepository;
 import app.quorum.user.repository.UserRepository;
 import java.time.Clock;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,16 +22,19 @@ public class UserProfileService {
     private final UserRepository userRepository;
     private final GenreRepository genreRepository;
     private final RefreshTokenService refreshTokenService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     public UserProfileService(
             UserRepository userRepository,
             GenreRepository genreRepository,
             RefreshTokenService refreshTokenService,
+            ApplicationEventPublisher eventPublisher,
             Clock clock) {
         this.userRepository = userRepository;
         this.genreRepository = genreRepository;
         this.refreshTokenService = refreshTokenService;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
@@ -41,6 +47,8 @@ public class UserProfileService {
         User user = findUser(userId);
         user.replaceFavGenres(genreIds);
         userRepository.save(user);
+        eventPublisher.publishEvent(
+                new AnalyticsEvent("onboarding_genres_set", userId, Map.of("genreCount", genreIds.size())));
     }
 
     @Transactional
@@ -58,6 +66,7 @@ public class UserProfileService {
         user.anonymize(clock);
         userRepository.save(user);
         refreshTokenService.revokeAllForUser(userId);
+        eventPublisher.publishEvent(new AnalyticsEvent("account_deleted", userId));
     }
 
     private ContentLang parseLangContent(String langContentCode) {

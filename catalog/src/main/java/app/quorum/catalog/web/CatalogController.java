@@ -82,9 +82,7 @@ public class CatalogController {
                 movie.posterUrl(),
                 genreNames(movie.genreIds(), lang),
                 movie.voteAverage(),
-                movie.overview(),
-                false,
-                false);
+                movie.overview());
     }
 
     @GetMapping("/genres")
@@ -111,9 +109,7 @@ public class CatalogController {
                                 .map(names::get)
                                 .filter(Objects::nonNull)
                                 .toList(),
-                        item.voteAverage(),
-                        false,
-                        false))
+                        item.voteAverage()))
                 .toList();
     }
 

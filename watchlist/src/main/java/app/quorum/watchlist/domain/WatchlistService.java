@@ -2,6 +2,7 @@ package app.quorum.watchlist.domain;
 
 import app.quorum.catalog.api.CatalogFacade;
 import app.quorum.common.ContentLang;
+import app.quorum.common.analytics.AnalyticsEvent;
 import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.MovieNotFoundException;
 import app.quorum.watchlist.api.MovieFlags;
@@ -13,12 +14,14 @@ import app.quorum.watchlist.infra.WatchlistBulkRepository;
 import app.quorum.watchlist.infra.WatchlistItemRepository;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +39,7 @@ public class WatchlistService implements WatchlistQueries {
     private final WatchlistAggRepository watchlistAggRepository;
     private final WatchlistBulkRepository watchlistBulkRepository;
     private final CatalogFacade catalogFacade;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
     private final int watchlistMax;
     private final int seenMax;
@@ -48,6 +52,7 @@ public class WatchlistService implements WatchlistQueries {
             WatchlistAggRepository watchlistAggRepository,
             WatchlistBulkRepository watchlistBulkRepository,
             CatalogFacade catalogFacade,
+            ApplicationEventPublisher eventPublisher,
             Clock clock,
             @Value("${quorum.limits.watchlist-max}") int watchlistMax,
             @Value("${quorum.limits.seen-max}") int seenMax,
@@ -57,6 +62,7 @@ public class WatchlistService implements WatchlistQueries {
         this.watchlistAggRepository = watchlistAggRepository;
         this.watchlistBulkRepository = watchlistBulkRepository;
         this.catalogFacade = catalogFacade;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
         this.watchlistMax = watchlistMax;
         this.seenMax = seenMax;
@@ -65,7 +71,7 @@ public class WatchlistService implements WatchlistQueries {
         this.requiresNewTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
-    public void addToWatchlist(UUID userId, long tmdbId, ContentLang lang) {
+    public void addToWatchlist(UUID userId, long tmdbId, ContentLang lang, String source) {
         ensureMovieExists(tmdbId, lang);
 
         UserMovieKey key = new UserMovieKey(userId, tmdbId);
@@ -79,6 +85,10 @@ public class WatchlistService implements WatchlistQueries {
                     throw new DomainRuleException("watchlist.limit-reached");
                 }
                 watchlistItemRepository.saveAndFlush(new WatchlistItem(userId, tmdbId, clock));
+                Map<String, Object> props = new HashMap<>();
+                props.put("tmdbId", tmdbId);
+                props.put("source", source);
+                eventPublisher.publishEvent(new AnalyticsEvent("watchlist_add", userId, props));
             });
         } catch (DataIntegrityViolationException raceLost) {
             boolean nowPresent = Boolean.TRUE.equals(

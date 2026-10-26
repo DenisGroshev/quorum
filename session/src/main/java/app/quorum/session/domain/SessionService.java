@@ -1,6 +1,7 @@
 package app.quorum.session.domain;
 
 import app.quorum.common.SessionState;
+import app.quorum.common.analytics.AnalyticsEvent;
 import app.quorum.common.exception.DomainRuleException;
 import app.quorum.common.exception.SessionNotFoundException;
 import app.quorum.session.api.SessionWatchedEvent;
@@ -10,6 +11,7 @@ import app.quorum.session.web.dto.UpdateSessionParamsRequest;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -73,7 +75,10 @@ public class SessionService {
             try {
                 Session saved = requiresNewTransactionTemplate.execute(status -> {
                     Session session = Session.create(hostId, params, inviteCodeGenerator.generate(), clock);
-                    return sessionRepository.saveAndFlush(session);
+                    Session result = sessionRepository.saveAndFlush(session);
+                    eventPublisher.publishEvent(
+                            new AnalyticsEvent("session_created", hostId, Map.of("deckSize", params.deckSize())));
+                    return result;
                 });
                 return new SessionCreationResult(saved, inviteLink(saved.getInviteCode()));
             } catch (DataIntegrityViolationException collision) {
@@ -88,8 +93,12 @@ public class SessionService {
             Session session = sessionRepository
                     .lockByInviteCode(inviteCode)
                     .orElseThrow(() -> new SessionNotFoundException("session.not-found"));
+            boolean newMember = !session.isMember(userId);
             session.join(userId, clock);
             sessionRepository.saveAndFlush(session);
+            if (newMember) {
+                eventPublisher.publishEvent(new AnalyticsEvent("session_joined", userId));
+            }
             return session.getId();
         });
     }
@@ -103,6 +112,12 @@ public class SessionService {
                     new DeckRequest(session.getId(), memberIds, session.getDeckSize(), session.isWatchlistOnly()));
             session.startVoting(actorId, deckResult, deckResult.configVersion(), clock);
             sessionRepository.saveAndFlush(session);
+            eventPublisher.publishEvent(new AnalyticsEvent(
+                    "voting_started",
+                    actorId,
+                    Map.of(
+                            "participantCount", memberIds.size(),
+                            "deckSize", deckResult.movies().size())));
         });
     }
 
@@ -140,6 +155,7 @@ public class SessionService {
             List<UUID> memberIds =
                     session.getMembers().stream().map(SessionMember::getUserId).toList();
             eventPublisher.publishEvent(new SessionWatchedEvent(memberIds, session.getWinnerTmdbId()));
+            eventPublisher.publishEvent(new AnalyticsEvent("session_watched", actorId));
         });
     }
 
@@ -148,6 +164,7 @@ public class SessionService {
             Session session = requireMember(sessionId, actorId);
             session.rateBy(actorId, value, clock);
             sessionRepository.saveAndFlush(session);
+            eventPublisher.publishEvent(new AnalyticsEvent("rating_set", actorId, Map.of("value", (int) value)));
         });
     }
 

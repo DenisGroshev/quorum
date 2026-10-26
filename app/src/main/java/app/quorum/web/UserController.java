@@ -6,8 +6,10 @@ import app.quorum.user.domain.User;
 import app.quorum.user.repository.UserRepository;
 import app.quorum.user.service.UserProfileService;
 import app.quorum.watchlist.api.WatchlistQueries;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -37,6 +39,7 @@ public class UserController {
         this.sessionQueryService = sessionQueryService;
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/me")
     public UserProfileResponse me(@RequestAttribute(BearerAuthInterceptor.USER_ID_ATTRIBUTE) UUID userId) {
         User user = userRepository
@@ -49,7 +52,8 @@ public class UserController {
                 user.isNotifyEnabled(),
                 user.getLangContent().name(),
                 watchlistQueries.watchlistCount(userId),
-                sessionQueryService.countWatched(userId));
+                sessionQueryService.countWatched(userId),
+                Set.copyOf(user.getFavGenreIds()));
     }
 
     @PutMapping("/me/favorite-genres")

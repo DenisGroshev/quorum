@@ -9,10 +9,13 @@ import app.quorum.common.exception.RefreshTokenReusedException;
 import app.quorum.common.exception.SessionForbiddenException;
 import app.quorum.common.exception.SessionNotFoundException;
 import app.quorum.common.exception.SessionStateConflictException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -83,6 +86,17 @@ public class ApiExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
         problem.setTitle("Session state conflict");
         problem.setProperty("code", exception.getMessage());
+        return problem;
+    }
+
+    // TMDB недоступен (сеть) или уже разомкнут ограничитель — обе ситуации
+    // должны выглядеть для клиента одинаково понятно, а не как сырой 500
+    // без тела (см. Приложение P, шаг 11).
+    @ExceptionHandler({ResourceAccessException.class, HttpServerErrorException.class, CallNotPermittedException.class})
+    public ProblemDetail handleCatalogUnavailable(Exception exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, "Movie catalog is temporarily unavailable, please try again shortly");
+        problem.setTitle("Catalog unavailable");
         return problem;
     }
 }

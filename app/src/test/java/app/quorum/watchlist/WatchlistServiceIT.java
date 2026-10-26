@@ -131,7 +131,7 @@ class WatchlistServiceIT {
                         """
                                 .formatted(tmdbId))));
 
-        assertDoesNotThrow(() -> watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU));
+        assertDoesNotThrow(() -> watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU, null));
 
         assertThat(watchlistItemRepository.existsById(new UserMovieKey(userId, tmdbId)))
                 .isTrue();
@@ -153,7 +153,7 @@ class WatchlistServiceIT {
                     .<Future<?>>mapToObj(i -> executor.submit(() -> {
                         ready.countDown();
                         awaitUninterruptibly(start);
-                        watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU);
+                        watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU, null);
                     }))
                     .collect(Collectors.toList());
 
@@ -185,7 +185,7 @@ class WatchlistServiceIT {
         insertFreshMovie(tmdbId);
         UserMovieKey key = new UserMovieKey(userId, tmdbId);
 
-        watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU);
+        watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU, null);
 
         assertDoesNotThrow(() -> watchlistService.removeFromWatchlist(userId, tmdbId));
         assertThat(watchlistItemRepository.existsById(key)).isFalse();
@@ -199,7 +199,7 @@ class WatchlistServiceIT {
         insertFreshMovie(tmdbId);
         UserMovieKey key = new UserMovieKey(userId, tmdbId);
 
-        watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU);
+        watchlistService.addToWatchlist(userId, tmdbId, ContentLang.RU, null);
         assertThat(watchlistItemRepository.existsById(key)).isTrue();
 
         watchlistService.markSeen(userId, tmdbId, ContentLang.RU);
@@ -224,7 +224,7 @@ class WatchlistServiceIT {
         insertUser(userId, 700_040L);
         List<Long> tmdbIds = LongStream.rangeClosed(700_100, 700_149).boxed().collect(Collectors.toList());
         tmdbIds.forEach(this::insertFreshMovie);
-        watchlistService.addToWatchlist(userId, tmdbIds.get(0), ContentLang.RU);
+        watchlistService.addToWatchlist(userId, tmdbIds.get(0), ContentLang.RU, null);
         watchlistService.markSeen(userId, tmdbIds.get(1), ContentLang.RU);
 
         Statistics statistics =
@@ -249,9 +249,9 @@ class WatchlistServiceIT {
         long bothId = 700_054L;
         List.of(nowhereId, inWatchlistId, seenId, bothId).forEach(this::insertFreshMovie);
 
-        watchlistService.addToWatchlist(userId, inWatchlistId, ContentLang.RU);
+        watchlistService.addToWatchlist(userId, inWatchlistId, ContentLang.RU, null);
         watchlistService.markSeen(userId, seenId, ContentLang.RU);
-        watchlistService.addToWatchlist(userId, bothId, ContentLang.RU);
+        watchlistService.addToWatchlist(userId, bothId, ContentLang.RU, null);
         jdbcClient
                 .sql("INSERT INTO seen_items (user_id, tmdb_id, marked_at) VALUES (:userId, :tmdbId, :markedAt)")
                 .param("userId", userId)
@@ -279,9 +279,9 @@ class WatchlistServiceIT {
         }
         long tmdbId = 700_210L;
         insertFreshMovie(tmdbId);
-        watchlistService.addToWatchlist(users.get(0), tmdbId, ContentLang.RU);
-        watchlistService.addToWatchlist(users.get(1), tmdbId, ContentLang.RU);
-        watchlistService.addToWatchlist(users.get(2), tmdbId, ContentLang.RU);
+        watchlistService.addToWatchlist(users.get(0), tmdbId, ContentLang.RU, null);
+        watchlistService.addToWatchlist(users.get(1), tmdbId, ContentLang.RU, null);
+        watchlistService.addToWatchlist(users.get(2), tmdbId, ContentLang.RU, null);
 
         watchlistService.removeAndMarkSeen(users, tmdbId);
 
@@ -303,7 +303,7 @@ class WatchlistServiceIT {
         insertUser(users.get(1), 700_221L);
         long tmdbId = 700_211L;
         insertFreshMovie(tmdbId);
-        watchlistService.addToWatchlist(users.get(0), tmdbId, ContentLang.RU);
+        watchlistService.addToWatchlist(users.get(0), tmdbId, ContentLang.RU, null);
 
         watchlistService.removeAndMarkSeen(users, tmdbId);
 

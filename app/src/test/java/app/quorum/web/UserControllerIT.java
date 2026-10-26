@@ -138,6 +138,28 @@ class UserControllerIT {
     }
 
     @Test
+    void me_freshUser_favGenreIdsIsEmpty() {
+        TelegramLoginResult login = login(804L, "Jill", "jill");
+
+        ResponseEntity<Map<String, Object>> response = getMe(login.accessToken());
+
+        assertThat(response.getBody()).containsEntry("favGenreIds", List.of());
+    }
+
+    @Test
+    void me_afterReplacingFavoriteGenres_reflectsSelection() {
+        TelegramLoginResult login = login(805L, "Ken", "ken");
+        List<Integer> genreIds = seedGenres(3, 300);
+
+        putFavoriteGenres(login.accessToken(), Set.copyOf(genreIds));
+        ResponseEntity<Map<String, Object>> response = getMe(login.accessToken());
+
+        @SuppressWarnings("unchecked")
+        List<Integer> favGenreIds = (List<Integer>) response.getBody().get("favGenreIds");
+        assertThat(favGenreIds).containsExactlyInAnyOrderElementsOf(genreIds);
+    }
+
+    @Test
     void replaceFavoriteGenres_tenExistingGenres_succeeds() {
         TelegramLoginResult login = login(801L, "Gina", "gina");
         Set<Integer> genreIds = Set.copyOf(seedGenres(10, 100));

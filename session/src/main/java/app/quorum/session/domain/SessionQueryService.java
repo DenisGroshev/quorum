@@ -7,10 +7,13 @@ import app.quorum.common.SessionState;
 import app.quorum.session.infra.SessionRepository;
 import app.quorum.session.web.dto.SessionHistoryItem;
 import app.quorum.session.web.dto.SessionSummary;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -45,6 +48,14 @@ public class SessionQueryService {
                 .toList();
         Map<Long, MovieDto> winners = winnerIds.isEmpty() ? Map.of() : catalogFacade.getCached(winnerIds, lang);
 
+        List<UUID> sessionIds = sessions.stream().map(Session::getId).toList();
+        Map<UUID, BigDecimal> averageRatings = sessionIds.isEmpty()
+                ? Map.of()
+                : sessionRepository.findAverageRatings(sessionIds).stream()
+                        .collect(Collectors.toMap(
+                                SessionRepository.SessionAverageRating::getSessionId,
+                                r -> BigDecimal.valueOf(r.getAverageRating()).setScale(1, RoundingMode.HALF_UP)));
+
         return sessions.stream()
                 .map(s -> {
                     MovieDto winner = s.getWinnerTmdbId() != null ? winners.get(s.getWinnerTmdbId()) : null;
@@ -55,7 +66,8 @@ public class SessionQueryService {
                             s.getCreatedAt(),
                             s.getWinnerTmdbId(),
                             winner != null ? winner.title() : null,
-                            winner != null ? winner.posterUrl() : null);
+                            winner != null ? winner.posterUrl() : null,
+                            averageRatings.get(s.getId()));
                 })
                 .toList();
     }

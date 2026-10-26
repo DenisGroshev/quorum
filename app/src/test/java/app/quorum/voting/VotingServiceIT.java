@@ -138,6 +138,31 @@ class VotingServiceIT {
                 .orElse(null);
     }
 
+    private long analyticsEventCount(String type) {
+        return jdbcClient
+                .sql("SELECT COUNT(*) FROM analytics_events WHERE type = :type")
+                .param("type", type)
+                .query(Long.class)
+                .single();
+    }
+
+    private String analyticsEventProps(String type, UUID userId) {
+        return jdbcClient
+                .sql("SELECT props::text FROM analytics_events WHERE type = :type AND user_id = :userId")
+                .param("type", type)
+                .param("userId", userId)
+                .query(String.class)
+                .single();
+    }
+
+    private String latestAnalyticsEventProps(String type) {
+        return jdbcClient
+                .sql("SELECT props::text FROM analytics_events WHERE type = :type ORDER BY occurred_at DESC LIMIT 1")
+                .param("type", type)
+                .query(String.class)
+                .single();
+    }
+
     @Test
     void castVote_newVote_persists() {
         User host = userRepository.save(user(201));
@@ -447,5 +472,46 @@ class VotingServiceIT {
                 .as("with the correct voters-only denominator, 2/2 dislikes should trigger veto and force "
                         + "the compromise flag - if this is false, the wiring is using total member count instead")
                 .isTrue();
+    }
+
+    @Test
+    void castVote_recordsVoteCastAnalyticsEventWithVoteType() {
+        User host = userRepository.save(user(242));
+        User a = userRepository.save(user(243));
+        Session session = votingSession(host, List.of(a), "SVC0020", 826L);
+
+        votingService.castVote(session.getId(), host.getId(), 826L, VoteValue.SUPERLIKE);
+
+        assertThat(analyticsEventProps("vote_cast", host.getId())).contains("\"voteType\": \"SUPERLIKE\"");
+    }
+
+    @Test
+    void finishVoting_decided_recordsSessionDecidedAnalyticsEventWithContestedAndVotersOnlyCount() {
+        User host = userRepository.save(user(244));
+        User a = userRepository.save(user(245));
+        User b = userRepository.save(user(246));
+        Session session = votingSession(host, List.of(a, b), "SVC0021", 827L);
+        votingService.castVote(session.getId(), host.getId(), 827L, VoteValue.LIKE);
+        votingService.castVote(session.getId(), a.getId(), 827L, VoteValue.LIKE);
+
+        votingService.finishVoting(session.getId());
+
+        String props = latestAnalyticsEventProps("session_decided");
+        assertThat(props).contains("\"contested\": false");
+        assertThat(props)
+                .as("votedCount must reflect only members who actually voted (2), not total members (3)")
+                .contains("\"votedCount\": 2");
+    }
+
+    @Test
+    void finishVoting_noVotesAtAll_doesNotRecordSessionDecidedEvent() {
+        User host = userRepository.save(user(247));
+        User a = userRepository.save(user(248));
+        Session session = votingSession(host, List.of(a), "SVC0022", 828L);
+        long before = analyticsEventCount("session_decided");
+
+        votingService.finishVoting(session.getId());
+
+        assertThat(analyticsEventCount("session_decided")).isEqualTo(before);
     }
 }

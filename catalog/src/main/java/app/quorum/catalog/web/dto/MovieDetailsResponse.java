@@ -12,8 +12,4 @@ public record MovieDetailsResponse(
         String posterUrl,
         List<String> genres,
         BigDecimal voteAverage,
-        String overview,
-        // TODO(шаг 3, watchlist): всегда false, пока watchlist не готов.
-        boolean inWatchlist,
-        // TODO(шаг 3, watchlist): всегда false, пока watchlist не готов.
-        boolean seen) {}
+        String overview) {}

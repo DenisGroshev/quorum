@@ -47,8 +47,9 @@ public class WatchlistController {
     public MovieFlagResponse addToWatchlist(
             @RequestAttribute(RequestAttributes.USER_ID_ATTRIBUTE) UUID userId,
             @PathVariable long tmdbId,
-            @RequestAttribute(RequestAttributes.CONTENT_LANG_ATTRIBUTE) ContentLang lang) {
-        watchlistService.addToWatchlist(userId, tmdbId, lang);
+            @RequestAttribute(RequestAttributes.CONTENT_LANG_ATTRIBUTE) ContentLang lang,
+            @RequestParam(required = false) String source) {
+        watchlistService.addToWatchlist(userId, tmdbId, lang, source);
         return currentState(userId, tmdbId);
     }
 

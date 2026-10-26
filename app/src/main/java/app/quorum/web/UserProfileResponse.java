@@ -1,5 +1,6 @@
 package app.quorum.web;
 
+import java.util.Set;
 import java.util.UUID;
 
 public record UserProfileResponse(
@@ -9,4 +10,5 @@ public record UserProfileResponse(
         boolean notifyEnabled,
         String langContent,
         long watchlistCount,
-        long movieNightsCount) {}
+        long movieNightsCount,
+        Set<Integer> favGenreIds) {}

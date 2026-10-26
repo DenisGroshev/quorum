@@ -3,11 +3,11 @@ quorum:
     jwt:
       secret: ${JWT_SECRET:dev-only-insecure-secret-please-change}
   telegram:
-    bot-token: ${TG_BOT_TOKEN:dev-bot-token}
-    bot-username: ${TG_BOT_USERNAME:quorum_dev_bot}
-    miniapp-name: ${TG_APP_NAME:quorum-dev}
+    bot-token: ${TG_BOT_TOKEN:8628554467:AAE53EF7CgtbezrBzz_gzlunsB5uSx-AW2o}
+    bot-username: ${TG_BOT_USERNAME:pollyfilmdemobot}
+    miniapp-name: ${TG_APP_NAME:dev}
   tmdb:
-    api-token: ${TMDB_TOKEN:dev-tmdb-token}
+    api-token: ${TMDB_TOKEN:eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIwYzY5YTYyMTcxNDVjYWNjNzAyM2RlYmUxNWE2NDUxMiIsIm5iZiI6MTc4NTQyNjAwMS4xOTgwMDAyLCJzdWIiOiI2YTZiNzA1MWE0MWU3YTIzYzRlOWI2MzUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.knzrQHn33o-g5ZwTySFF4DmytLw4Sls7Fm2BJZ8bC3U}
 
 spring:
   datasource:

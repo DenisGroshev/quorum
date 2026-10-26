@@ -87,7 +87,6 @@ class DeckDiversifierTest {
         List<ScoredCandidate> deck =
                 diversifier.diversify(input, 3); // limit = floor(3*0.4) = 1... but backfill applies
 
-
         assertThat(deck).extracting(sc -> sc.candidate().tmdbId()).containsExactly(1L, 2L, 3L);
     }
 }

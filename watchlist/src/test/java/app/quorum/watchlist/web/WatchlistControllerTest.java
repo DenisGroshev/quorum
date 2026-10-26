@@ -127,6 +127,7 @@ class WatchlistControllerTest {
         when(watchlistService.seenCount(USER_ID)).thenReturn(2L);
 
         mockMvc.perform(put("/api/v1/watchlist/{tmdbId}", TMDB_ID)
+                        .param("source", "search")
                         .with(authenticatedAs(USER_ID))
                         .with(lang(ContentLang.RU)))
                 .andExpect(status().isOk())
@@ -135,7 +136,19 @@ class WatchlistControllerTest {
                 .andExpect(jsonPath("$.watchlistCount").value(5))
                 .andExpect(jsonPath("$.seenCount").value(2));
 
-        verify(watchlistService).addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU);
+        verify(watchlistService).addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, "search");
+    }
+
+    @Test
+    void addToWatchlist_sourceOmitted_passesNullSourceToService() throws Exception {
+        when(watchlistService.getFlag(USER_ID, TMDB_ID)).thenReturn(new MovieFlags(true, false));
+
+        mockMvc.perform(put("/api/v1/watchlist/{tmdbId}", TMDB_ID)
+                        .with(authenticatedAs(USER_ID))
+                        .with(lang(ContentLang.RU)))
+                .andExpect(status().isOk());
+
+        verify(watchlistService).addToWatchlist(USER_ID, TMDB_ID, ContentLang.RU, null);
     }
 
     @Test

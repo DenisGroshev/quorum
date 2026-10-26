@@ -77,6 +77,7 @@ public class MovieScorer {
         return Math.max(0.0, fraction);
     }
 
+    // Заглушка до этапа 2 (интеграция со стримингами). Решение зафиксировано в ТЗ п. 4.6, FR-MATCH-3.
     double availabilityScore() {
         return properties.availabilityStub();
     }

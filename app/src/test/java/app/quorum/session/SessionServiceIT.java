@@ -147,6 +147,24 @@ class SessionServiceIT {
                 .single();
     }
 
+    private String analyticsEventProps(String type, UUID userId) {
+        return jdbcClient
+                .sql("SELECT props::text FROM analytics_events WHERE type = :type AND user_id = :userId")
+                .param("type", type)
+                .param("userId", userId)
+                .query(String.class)
+                .single();
+    }
+
+    private long analyticsEventCount(String type, UUID userId) {
+        return jdbcClient
+                .sql("SELECT COUNT(*) FROM analytics_events WHERE type = :type AND user_id = :userId")
+                .param("type", type)
+                .param("userId", userId)
+                .query(Long.class)
+                .single();
+    }
+
     private void addToWatchlist(UUID userId, long tmdbId) {
         jdbcClient
                 .sql("INSERT INTO watchlist_items (user_id, tmdb_id, added_at) VALUES (:userId, :tmdbId, :addedAt)")
@@ -876,5 +894,94 @@ class SessionServiceIT {
         } finally {
             pool.shutdown();
         }
+    }
+
+    @Test
+    void create_recordsSessionCreatedAnalyticsEventWithDeckSize() {
+        User host = userRepository.save(user(3000));
+
+        sessionService.create(host.getId(), defaultRequest());
+
+        assertThat(analyticsEventProps("session_created", host.getId())).contains("\"deckSize\": 20");
+    }
+
+    @Test
+    void join_recordsSessionJoinedAnalyticsEvent() {
+        User host = userRepository.save(user(3001));
+        User member = userRepository.save(user(3002));
+        SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
+
+        sessionService.join(created.session().getInviteCode(), member.getId());
+
+        assertThat(analyticsEventCount("session_joined", member.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void join_alreadyMember_doesNotRecordDuplicateAnalyticsEvent() {
+        User host = userRepository.save(user(3007));
+        User member = userRepository.save(user(3008));
+        SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
+        sessionService.join(created.session().getInviteCode(), member.getId());
+
+        sessionService.join(created.session().getInviteCode(), member.getId());
+
+        assertThat(analyticsEventCount("session_joined", member.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void startVoting_recordsVotingStartedAnalyticsEventWithParticipantAndDeckCounts() {
+        User host = userRepository.save(user(3003));
+        User member = userRepository.save(user(3004));
+        insertMovie(700_040);
+        SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
+        sessionService.join(created.session().getInviteCode(), member.getId());
+        addToWatchlist(host.getId(), 700_040);
+
+        sessionService.startVoting(created.session().getId(), host.getId());
+
+        String props = analyticsEventProps("voting_started", host.getId());
+        assertThat(props).contains("\"participantCount\": 2");
+        assertThat(props).contains("\"deckSize\": 1");
+    }
+
+    @Test
+    void markWatched_recordsSessionWatchedAnalyticsEvent() {
+        User host = userRepository.save(user(3005));
+        User member = userRepository.save(user(3105));
+        insertMovie(700_041);
+        SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
+        sessionService.join(created.session().getInviteCode(), member.getId());
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            Session session =
+                    sessionRepository.findById(created.session().getId()).orElseThrow();
+            session.startVoting(host.getId(), deckFor(700_041), "v1", clock);
+            session.decide(700_041L, false, clock);
+            sessionRepository.saveAndFlush(session);
+        });
+
+        sessionService.markWatched(created.session().getId(), host.getId());
+
+        assertThat(analyticsEventCount("session_watched", host.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void rate_recordsRatingSetAnalyticsEventWithValue() {
+        User host = userRepository.save(user(3006));
+        User member = userRepository.save(user(3106));
+        insertMovie(700_042);
+        SessionCreationResult created = sessionService.create(host.getId(), defaultRequest());
+        sessionService.join(created.session().getInviteCode(), member.getId());
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            Session session =
+                    sessionRepository.findById(created.session().getId()).orElseThrow();
+            session.startVoting(host.getId(), deckFor(700_042), "v1", clock);
+            session.decide(700_042L, false, clock);
+            session.markWatched(host.getId(), clock);
+            sessionRepository.saveAndFlush(session);
+        });
+
+        sessionService.rate(created.session().getId(), host.getId(), (short) 4);
+
+        assertThat(analyticsEventProps("rating_set", host.getId())).contains("\"value\": 4");
     }
 }

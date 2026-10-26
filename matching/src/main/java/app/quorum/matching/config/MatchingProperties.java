@@ -22,6 +22,7 @@ public record MatchingProperties(
         @DecimalMin("0.0") @DecimalMax("1.0") double defaultRatingWhenFewVotes,
         @DecimalMin("0.0") @DecimalMax("1.0") double maxGenreShare,
         @Positive int candidateMultiplier,
+        // Заглушка до этапа 2 (интеграция со стримингами). Решение зафиксировано в ТЗ п. 4.6, FR-MATCH-3.
         @DecimalMin("0.0") @DecimalMax("1.0") double availabilityStub) {
 
     public record Weights(

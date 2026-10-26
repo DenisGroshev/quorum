@@ -1,9 +1,11 @@
 package app.quorum.user.service;
 
 import app.quorum.auth.api.TelegramProfile;
+import app.quorum.common.analytics.AnalyticsEvent;
 import app.quorum.user.domain.User;
 import app.quorum.user.repository.UserRepository;
 import java.time.Clock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -14,12 +16,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class UserRegistrationService {
 
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
     public UserRegistrationService(
-            UserRepository userRepository, Clock clock, PlatformTransactionManager transactionManager) {
+            UserRepository userRepository,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock,
+            PlatformTransactionManager transactionManager) {
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         // Each step below must commit or roll back on its own: Postgres aborts the
@@ -38,7 +45,9 @@ public class UserRegistrationService {
         try {
             return transactionTemplate.execute(status -> {
                 User user = User.registerFromTelegram(profile, clock);
-                return userRepository.saveAndFlush(user);
+                User saved = userRepository.saveAndFlush(user);
+                eventPublisher.publishEvent(new AnalyticsEvent("user_registered", saved.getId()));
+                return saved;
             });
         } catch (DataIntegrityViolationException raceLost) {
             // Another concurrent first-login for the same tg_user_id won the race

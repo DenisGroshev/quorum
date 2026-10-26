@@ -17,4 +17,5 @@ include(
         "app", "common", "telegram",
         "user", "auth", "catalog", "watchlist",
         "session", "matching", "voting", "notification",
+        "analytics",
 )

@@ -13,11 +13,15 @@ dependencies {
     implementation(project(":matching"))
     implementation(project(":voting"))
     implementation(project(":notification"))
+    implementation(project(":analytics"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation(libs.springdoc.webmvc)
+    // ApiExceptionHandler catches CallNotPermittedException (open circuit breaker)
+    // alongside TMDB network errors, so it needs the type on the compile classpath.
+    implementation(libs.resilience4j.spring)
 
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("org.flywaydb:flyway-database-postgresql")

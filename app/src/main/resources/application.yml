@@ -8,7 +8,8 @@ quorum:
   telegram:
     bot-token: ${TG_BOT_TOKEN}
     bot-username: ${TG_BOT_USERNAME:quorum_bot}
-    miniapp-name: ${TG_APP_NAME}
+    miniapp-name: ${TG_APP_NAME:quorum_app}
+    api-base-url: ${TG_API_BASE_URL:https://api.telegram.org}
     send-rate-per-sec: 20
   vote:
     veto-threshold: 0.6
@@ -41,6 +42,7 @@ quorum:
     default-rating-when-few-votes: 0.3
     max-genre-share: 0.4
     candidate-multiplier: 3
+    # Заглушка до этапа 2 (интеграция со стримингами). Решение зафиксировано в ТЗ п. 4.6, FR-MATCH-3.
     availability-stub: 0.5
   limits:
     watchlist-max: 1000
@@ -84,6 +86,10 @@ spring:
     url: jdbc:postgresql://localhost:5433/quorum
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
+    hikari:
+      # NFR: запросы должны быстро отваливаться при недоступной базе, а не
+      # ждать дефолтные 30s (см. Приложение P, шаг 11).
+      connection-timeout: 3000
   jpa:
     hibernate:
       ddl-auto: validate

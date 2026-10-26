@@ -31,7 +31,6 @@ class MovieScorerTest {
         return contextOf(n, List.of(), Set.of());
     }
 
-
     @Test
     void overlap_fourParticipantsOwnedByThree_isThreeQuarters() {
         Candidate c = candidate().ownersCount(3).build();

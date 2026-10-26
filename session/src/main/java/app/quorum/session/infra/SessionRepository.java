@@ -52,4 +52,19 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
     List<Session> findHistoryFor(@Param("userId") UUID userId, @Param("states") Collection<SessionState> states);
 
     long countByMembers_Key_UserIdAndState(UUID userId, SessionState state);
+
+    @Query(
+            """
+            select m.key.sessionId as sessionId, avg(m.rating) as averageRating
+            from SessionMember m
+            where m.key.sessionId in :sessionIds and m.rating is not null
+            group by m.key.sessionId
+            """)
+    List<SessionAverageRating> findAverageRatings(@Param("sessionIds") Collection<UUID> sessionIds);
+
+    interface SessionAverageRating {
+        UUID getSessionId();
+
+        Double getAverageRating();
+    }
 }
